@@ -1,5 +1,6 @@
+include ("IdealGasModel.jl")
+include ("PengRobinsonModel.jl")
+include ("Solver.jl")
 module ThermophysicalCalculation
 
-# package code goes here
-
-end # module
+end

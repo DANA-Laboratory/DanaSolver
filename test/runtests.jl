@@ -1,5 +1,9 @@
 using ThermophysicalCalculation
 using Base.Test
-
-# write your own tests here
-@test 1 == 1
+include ("test_IdealGasModel.jl")
+include ("test_PengRobinsonModel.jl")
+include ("test_Solver.jl")
+forButane()
+CompPolyVS_Hyper()
+forAcetone()
+forCarbonmonoxide()

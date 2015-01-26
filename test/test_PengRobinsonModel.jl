@@ -1,23 +1,7 @@
 # REF[1] Chemical Process Design and Integration By Robin Smith
 # REF[2] Engineering and Chemical Thermodynamics By Milo D. Koretsky
 # REF[3] Perry HandBook
-reload ("HelperEquation.jl")
-reload ("Tables.jl")
-reload ("PengRobinson.jl")
-reload ("Calculus.jl")
-#reload("PengRobinson.jl/test/test_PengRobinson.jl");test_PengRobinson.testPR()
-#reload("PengRobinson.jl/test/test_PengRobinson.jl");test_PengRobinson.testDeparture()
-#reload("PengRobinson.jl/test/test_PengRobinson.jl");test_PengRobinson.testVariousKnowns()
-#reload("PengRobinson.jl/test/test_PengRobinson.jl");test_PengRobinson.testMoreThanOneNonLinear()
 module test_PengRobinson
-  using HelperEquation
-  using PengRobinson
-  using Tables
-  using Roots
-	using NLopt
-	using DanaTypes
-  reload ("IdealGasEos.jl/test/test_IdealGasEos.jl")
-  using test_IdealGasEos
 	#generate indexes for all possible system of _noe equations[APSOE]. 
   #where equations is a selection from _minIndex to _maxIndex of a list of equations
 	function getAPSOE(_minIndex::Int,_maxIndex::Int,_noe::Int)

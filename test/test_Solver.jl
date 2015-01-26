@@ -1,11 +1,4 @@
-reload ("HelperEquation.jl")
-reload ("IdealGasEos.jl")
-reload ("Tables.jl")
 module test
-  using HelperEquation
-  using IdealGasEos
-  using Tables
-  using Roots
   function testforIdealGasModelWithCp()
     DNIdel=DANAIdealGasEos()
     DNIdel.P=12.0

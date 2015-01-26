@@ -1,15 +1,13 @@
 module Solver 
-
   export replace
-
   export analysis
   export replace!
   export solve
   export update!
-  
   using DanaTypes
   using Calculus
-  using Roots
+  import DanaTypes.setfield
+  #using Roots
   #replace known arguments in _eq::Function argument list and returns another function with only unknowns 
 	#for unknown arguments pass NaN in _argsArray
 	#getEq([1.1,2.3,NaN,-3.1,NaN],fun) -> _fun(arg1,arg2)=fun(1.1,2.3,arg1,-3.1,arg2)
@@ -33,7 +31,6 @@ module Solver
   getfield(danamodel::DanaModel,sy::Symbol)=get(Base.getfield(danamodel,sy))
   getfield(danamodel::DanaModel,ex::Expr)=getfield(getfield(danamodel,ex.args[1]),ex.args[2].value)
 
-  setfield(danamodel::DanaModel,sy::Symbol,value)=set(danamodel.(sy),value)
   setfield(danamodel::DanaModel,ex::Expr,value)=setfield(getfield(danamodel,ex.args[1]),ex.args[2].value,value)
   setfield(danamodel::DanaModel,st::String,value)=setfield(danamodel,symbol(st),value)
   
@@ -51,7 +48,7 @@ module Solver
   
   function replace(danamodel::DanaModel,sym::Symbol)
     var = getfield(danamodel,sym)
-    return (var==nothing ? sym : var)
+    return (isunknown(var) ? sym : var)
   end
   #replace symbols with their values & := with :-
   function replace(danamodel::DanaModel,exp::Expr)
@@ -65,7 +62,7 @@ module Solver
       return Expr(:call,:-,replace(danamodel,exp.args[1]),replace(danamodel,exp.args[2]))
     elseif exp.head == :.
       var = getfield(danamodel,exp)
-      return (var==nothing ? exp : var)
+      return (isunknown(var) ? exp : var)
     end
     return exp
   end
@@ -182,6 +179,7 @@ module Solver
         if isa(y,DomainError)
           println ("can't simplify following equation:\n",eq);
         end
+        println ("can't simplify following equation:\n",eq);
         throw(y)
       end
     end
@@ -286,5 +284,4 @@ module Solver
       end
     end
   end
-  
 end

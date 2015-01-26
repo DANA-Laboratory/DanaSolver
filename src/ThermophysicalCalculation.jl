@@ -1,6 +1,14 @@
 include ("IdealGasModel.jl")
 include ("PengRobinsonModel.jl")
 include ("Solver.jl")
+using IdealGasModel
+using ThermodynamicsTable
+using Solver
 module ThermophysicalCalculation
-
+#  using Solver
+#  using IdealGasModel
+#  using PengRobinsonModel
+#  using ThermodynamicsTable
+#  using Roots
+#  using NLopt
 end

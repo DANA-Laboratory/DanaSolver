@@ -2,7 +2,7 @@ module Solver
   using DanaTypes
   using Calculus
   using Roots
-  export solve
+  export solve!
   import DanaTypes.setfield
   include ("Replace.jl")
   include ("Analysis.jl")
@@ -32,8 +32,10 @@ module Solver
   getfield(danamodel::DanaModel,sy::Symbol)=get(Base.getfield(danamodel,sy))
   getfield(danamodel::DanaModel,ex::Expr)=getfield(getfield(danamodel,ex.args[1]),ex.args[2].value)
 
-  #main loop
-  function solve(danamodel::DanaModel)
+  #solve li plus one nonlinear
+  function sliponl!(danamodel::DanaModel)
+    nonliArgs::Array{Set{String},1}=Array(Set{String},0)
+    nonliFuns::Array{Function,1}=Array(Function,0)
     somethingUpdated=true
     fullDetermined=false
     noliTrys=0
@@ -46,9 +48,63 @@ module Solver
         nonlTrys+=noTrys
       end
     end
+    return somethingUpdated,fullDetermined,noliTrys,nonlTrys,nonliFuns,nonliArgs
+  end
+  
+  #main loop
+  function solve!(danamodel::DanaModel)
+    somthingUpdated=true
+    fullDetermined=false
+    while (somthingUpdated && !fullDetermined)
+      somethingUpdated,fullDetermined,noliTrys,nonlTrys,nonliFuns,nonliArgs=sliponl!(danamodel)
+      if !fullDetermined
+        #somethingUpdated,fullDetermined=ssonle!(danamodel,nonliFuns,nonliArgs)
+      end
+    end
     return somethingUpdated,fullDetermined,noliTrys,nonlTrys
   end
-
+  
+  # solve system of nonlinear equations
+  function ssonle!(danamodel::DanaModel,nonliFuns::Array{Function,1},nonliArgs::Array{Set{String},1})
+    somthingUpdated=false
+    fullDetermined=false
+    numberOfEquations=length(nonliFuns)
+    noe=2 #number of equations
+    while (noe<=numberOfEquations && !somthingUpdated)
+      eqIndexes=getapsoe(1,numberOfEquations,noe)
+      for eqIndex in eqIndexes
+        varGroup=getindex(nonliArgs,eqIndex)
+        allVars=union(varGroup...)
+        if length(allVars) == noe
+          eqGroup=getindex(nonliFuns,eqIndex)
+          #println("eqGroup=",eqIndex," for vars:",allVars)
+          indxGroup=map(x->indexin([x...],[allVars...]),varGroup)
+          opt = Opt(:GN_DIRECT_L, noe)
+          lower_bounds!(opt, [1.0e-3, 1.0])
+          upper_bounds!(opt, [10.0,2500])
+          stopval!(opt, 1.0e-12)
+          maxtime!(opt, 1.0*noe)
+          #ftol_abs!(opt, 1.0e-19)
+          #ftol_rel!(opt, 1.0e-18)
+          min_objective!(opt, (y,gradient)->mapreduce(x->(apply(eqGroup[x],getindex(y,indxGroup[x])))^2,+,[1:noe]))
+          (minf,minx,ret)=optimize(opt,ones(Float64,noe))
+          #println("got $minf at $minx (returned $ret)")
+          if "$ret"=="STOPVAL_REACHED"
+            for j in [1:noe]
+              setfield(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
+            end
+            somthingUpdated=true
+            if noe==numberOfEquations
+              fullDetermined=true
+            end
+            break
+          end
+        end
+      end
+    end
+    return somthingUpdated,fullDetermined
+  end
+  
   # Solve Linear System Til Something Updated But Not Full Determined
   function slstsubnfd!(danamodel::DanaModel)
     nonliArgs::Array{Set{String},1}=Array(Set{String},0)
@@ -146,4 +202,19 @@ module Solver
     U		
   end		
   rref(x::Number) = one(x)
+  
+  #generate indexes for all possible system of _noe equations[APSOE]. 
+  #where equations are selected from _minIndex to _maxIndex of a list of equations
+  function getapsoe(minIndex::Int,maxIndex::Int,noe::Int)
+    if 1<noe
+      jj::Vector=Vector[]
+      for k in [minIndex+1:maxIndex] 
+        j=getAPSOE(k,maxIndex,noe-1)
+        jj=append!(jj,[push!(e,k-1) for e in j])
+      end
+      return jj
+    else
+      return [[i] for i in minIndex:maxIndex]
+    end
+  end
 end

@@ -113,6 +113,6 @@ function testsolve()
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
   setEquationFlow(DNIdel)
-  somethingUpdated,fullDetermined,noliTrys,nonlTrys=solve(DNIdel)
+  somethingUpdated,fullDetermined,noliTrys,nonlTrys=Solver.sliponl!(DNIdel)
   println("somethingUpdate=",somethingUpdated," fullDetermined=",fullDetermined," noliTrys=",noliTrys," nonlTrys=",nonlTrys)
 end

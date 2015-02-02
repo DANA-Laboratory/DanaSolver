@@ -2,8 +2,9 @@ module Solver
   using DanaTypes
   using Calculus
   using Roots
+  using NLopt
   export solve!
-  import DanaTypes.setfield
+  import DanaTypes.setfield!
   include ("Replace.jl")
   include ("Analysis.jl")
   include ("Update.jl")
@@ -91,7 +92,7 @@ module Solver
           #println("got $minf at $minx (returned $ret)")
           if "$ret"=="STOPVAL_REACHED"
             for j in [1:noe]
-              setfield(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
+              setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
             end
             somthingUpdated=true
             if noe==numberOfEquations
@@ -115,7 +116,10 @@ module Solver
     while (somethingUpdated && !fullDetermined)
       noTrys+=1
       rVls,vars,nonliFuns,nonliArgs=solvelinear(danamodel)
+      println(rVls)
+      println(vars)
       somethingUpdated,fullDetermined=update!(danamodel,rVls,vars)
+      somethingUpdated && setEquationFlow(danamodel)
     end
     return somethingUpdated,fullDetermined,nonliFuns,nonliArgs,noTrys
   end
@@ -130,7 +134,8 @@ module Solver
       if length(nonliArgs[i])==1
         noTrys+=1
         result=fzero(nonliFuns[i],[0,typemax(Int64)])
-        setfield(danamodel,[nonliArgs[i]...][1],result)
+        setfield!(danamodel,[nonliArgs[i]...][1],result)
+        setEquationFlow(danamodel)
         somethingUpdated=true
       else
         fullDetermined=false

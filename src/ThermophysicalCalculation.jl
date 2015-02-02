@@ -3,6 +3,7 @@ include ("PengRobinsonModel.jl")
 include ("Solver.jl")
 using IdealGasModel
 using ThermodynamicsTable
+using PengRobinsonModel
 using Solver
 module ThermophysicalCalculation
 #  using Solver

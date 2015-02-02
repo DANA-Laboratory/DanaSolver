@@ -3,6 +3,7 @@
 module IdealGasModel
   #Units J,Kmol,Kelvin,pascal
   using DanaTypes
+  import DanaTypes.setEquationFlow
   export DANAIdealGasEos,setEquationFlow
   type  DANAIdealGasEos <: DanaModel
       DANAIdealGasEos()=begin
@@ -52,5 +53,6 @@ module IdealGasModel
     else
       this.equationsFlow=[this.equations[1],this.equations[3],this.equations[5],this.equations[6],this.equations[8],this.equations[9],this.equations[10],this.equations[11]]
     end
+    println(this.equationsFlow)
   end
 end

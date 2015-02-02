@@ -5,38 +5,46 @@ module PengRobinsonModel
   # Units J,Kmol,Kelvin,pascal
   using DanaTypes
   using EMLtypes
+  import DanaTypes.setEquationFlow
   export DANAPengRobinson,setEquationFlow
+  const R=8314.4621 #general gas constatnt "J/Kmol/Kelvin"
+  const AVR_Tc=548.33512173913 #REF: Pkg.test("ThermodynamicsTable")
+  const AVR_Pc=8.752551304347826e6
+  const MAX_Tc=1113.0
+  const MIN_Tc=5.2
+  const MAX_Pc=6.162e8
+  const MIN_Pc=227500.0
   type  DANAPengRobinson <: DanaModel
       DANAPengRobinson()=begin
         new(
-          constant(Dict(Symbol,Any)(:Default=>pi)),
-          constant(Dict(Symbol,Any)(:Brief=>"general gas constatnt",:Default=>8314.4621,:Unit=>"J/Kmol/Kelvin")),
-          "",
-          volume_mol(),
-          temperature(),
-          temperature(Dict(Symbol,Any)(:Brief=>"critical temperature")),
+          constant(Dict{Symbol,Any}(:Default=>pi)), 
+          constant(Dict{Symbol,Any}(:Brief=>"general gas constatnt",:Default=>R,:Unit=>"J/Kmol/Kelvin")),
+          "", 
+          volume_mol(Dict{Symbol,Any}(:Upper=>50.0)),
+          temperature(Dict{Symbol,Any}(:Upper=>1000.0)), 
+          temperature(Dict{Symbol,Any}(:Brief=>"critical temperature")), 
           pressure(),
-          pressure(Dict(Symbol,Any)(:Brief=>"critical pressure")),
-          constant(),
+          pressure(Dict{Symbol,Any}(:Brief=>"critical pressure")),
+          coefficient(),
+          coefficient(),
+          coefficient(),
+          coefficient(Dict{Symbol,Any}(:Lower=>eps(Float64),:Upper=>1/0.414,:Default=>0.1)), #B log(x>0)
           coefficient(),
           coefficient(),
           coefficient(),
           coefficient(),
           coefficient(),
           coefficient(),
-          coefficient(),
-          coefficient(),
-          coefficient(),
-          constant(Dict(Symbol,Any)(:Brief=>"acentric factor")),
-          coefficient(Dict(Symbol,Any)(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>50.0)),
-          coefficient(Dict(Symbol,Any)(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>50.0)),
-          coefficient(Dict(Symbol,Any)(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>50.0)),
-          coefficient(Dict(Symbol,Any)(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>50.0)),
+          coefficient(Dict{Symbol,Any}(:Brief=>"acentric factor")),
+          coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
+          coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
+          coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
+          coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           coefficient(),
           enth_mol(),
           entr_mol(),
           enth_mol(),
-          coefficient(Dict(Symbol,Any)(:Default=>0.457235*R^2*AVR_Tc^2/AVR_Pc,:Lower=>0.457235*R^2*MIN_Tc^2/MAX_Pc,:Upper=>0.457235*R^2*MAX_Tc^2/MIN_Pc)),
+          coefficient(Dict{Symbol,Any}(:Default=>0.457235*R^2*AVR_Tc^2/AVR_Pc,:Lower=>0.457235*R^2*MIN_Tc^2/MAX_Pc,:Upper=>0.457235*R^2*MAX_Tc^2/MIN_Pc)),
           [
             :(teta=acos(r/q^1.5)),
             :(Z1=-2*sqrt(q)*cos(teta/3)-beta/3),
@@ -52,9 +60,9 @@ module PengRobinsonModel
             :(delta=B^3+B^2-A*B),
             :(q=(beta*beta-3*gama)/9),
             :(r=(2*beta^3-9*beta*gama+27*delta)/54),
-            :(h_Dep=R*Tc*((T/Tc)*(Z-1)-2.078*(1+k)*sqrt((1+k*(1-sqrt(T/Tc)))^2)*log((Z+2.414*B)/(Z-0.414*B)))), #REF[2]
+            :(h_Dep=R*Tc*((T/Tc)*(P*v/R/T-1)-2.078*(1+k)*sqrt((1+k*(1-sqrt(T/Tc)))^2)*log((P*v/R/T+2.414*b*P/R/T)/(P*v/R/T-0.414*b*P/R/T)))), #REF[2]
             :(s_Dep=R*(log(Z-B)-2.078*k*((1+k)/sqrt(T/Tc)-k)*log((Z+2.414*B)/(Z-0.414*B)))), #REF[2]
-            :(h_Dep2=((-4*(b^3*R*T*Tc-2*b^2*R*T*Tc*v+a*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))*v^2-b*v*(a*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))+R*T*Tc*v)))/(Tc*(b-v)*(b^2-2*b*v-v^2))-(sqrt(2)*a*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(-1+(b+v)/(sqrt(2)*b)))/b+(sqrt(2)*a*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(1+(b+v)/(sqrt(2)*b)))/b)/4),
+            :(h_Depp=((-4*(b^3*R*T*Tc-2*b^2*R*T*Tc*v+a*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))*v^2-b*v*(a*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))+R*T*Tc*v)))/(Tc*(b-v)*(b^2-2*b*v-v^2))-(sqrt(2)*a*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(-1+(b+v)/(sqrt(2)*b)))/b+(sqrt(2)*a*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(1+(b+v)/(sqrt(2)*b)))/b)/4),
             :(a=0.457235*R^2*Tc^2/Pc), #REF[3]
             :(o=cbrt((r^2-q^3)^0.5+abs(r))),
             :(Z=-sign(r)*(o+q/o)-beta/3),
@@ -80,7 +88,7 @@ module PengRobinsonModel
       Tc::temperature
       P::pressure
       Pc::pressure
-      k::constant
+      k::coefficient
       A::coefficient
       b::coefficient
       B::coefficient
@@ -90,7 +98,7 @@ module PengRobinsonModel
       q::coefficient
       r::coefficient
       teta::coefficient
-      af::constant
+      af::coefficient
       Z1::coefficient
       Z2::coefficient
       Z3::coefficient
@@ -98,9 +106,9 @@ module PengRobinsonModel
       o::coefficient
       h_Dep::enth_mol
       s_Dep::entr_mol
-      h_Dep2::enth_mol
+      h_Depp::enth_mol
       a::coefficient
-      #h_Dep_aletr::Float64
+      #h_Depp aletr::Float64
       #equations
       equations::Array{Expr,1}
       equationsFlow::Array{Expr,1}

@@ -1,6 +1,6 @@
 
-setfield(danamodel::DanaModel,ex::Expr,value)=setfield(getfield(danamodel,ex.args[1]),ex.args[2].value,value)
-setfield(danamodel::DanaModel,st::String,value)=setfield(danamodel,symbol(st),value)
+setfield!(danamodel::DanaModel,ex::Expr,value)=setfield!(getfield(danamodel,ex.args[1]),ex.args[2].value,value)
+setfield!(danamodel::DanaModel,st::String,value)=setfield!(danamodel,symbol(st),value)
 
 function update!(danamodel::DanaModel,rre::Array{Float64,2},vars::Array{String,1})
   somthingUpdated=false
@@ -26,7 +26,7 @@ function update!(danamodel::DanaModel,rre::Array{Float64,2},vars::Array{String,1
       j+=1
     end
     if j==clms
-      setfield(danamodel,vars[lda],-1*valz[r])
+      setfield!(danamodel,vars[lda],-1*valz[r])
       somthingUpdated=true
     else
       fullDetermined=false

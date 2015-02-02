@@ -1,283 +1,346 @@
 # REF[1] Chemical Process Design and Integration By Robin Smith
 # REF[2] Engineering and Chemical Thermodynamics By Milo D. Koretsky
 # REF[3] Perry HandBook
-module test_PengRobinson
-	#generate indexes for all possible system of _noe equations[APSOE]. 
-  #where equations is a selection from _minIndex to _maxIndex of a list of equations
-	function getAPSOE(_minIndex::Int,_maxIndex::Int,_noe::Int)
-		if 1<_noe
-			jj::Vector=Vector[]
-			for k in [_minIndex+1:_maxIndex] 
-				j=getAPSOE(k,_maxIndex,_noe-1)
-				jj=append!(jj,[push!(e,k-1) for e in j])
-			end
-			return jj
-		else
-			return [[i] for i in _minIndex:_maxIndex]
-		end
-	end
-	#*********************
-	function testMoreThanOneNonLinear()
-		nonliFuns::Array{Function,1}=Array(Function,0)
-		nonliVars::Array{Set{String},1}=Array(Set{String},0)
-		for k in [1:5]
-			cNo="75-07-0"
-			PR=DANAPengRobinson()
-			PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo) 
-			PR.h_Dep,PR.h_Dep2,PR.P,PR.T,PR.v=[(NaN,NaN,PR.Pc,PR.Tc,NaN),(NaN,NaN,NaN,PR.Tc,0.22435958119569624),(NaN,NaN,PR.Pc,NaN,0.22435958119569624),(NaN,-1.08307222504879e7,PR.Pc,NaN,NaN),(-1.08307222504879e7,NaN,PR.Pc,NaN,NaN)][k]
-			somthingUpdated=true
-			fullDetermined=false
-			while (somthingUpdated && !fullDetermined)
-				while (somthingUpdated && !fullDetermined)
-					while (somthingUpdated && !fullDetermined)
-						setEquationFlow(PR);
-						#linear solver
-						rVls,vars,nonliFuns,nonliVars=solve(PR)
-						somthingUpdated,fullDetermined=update!(PR,rVls,vars)
-						println("Linear Solver.")
-					end
-					if !fullDetermined
-						somthingUpdated=false
-						i=1
-						fullDetermined=true
-						#search for non-linear equations with only one unknown
-						numberOfEquations=length(nonliFuns)
-						while (i<=numberOfEquations && !somthingUpdated)
-							if length(nonliVars[i])==1
-								result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
-								HelperEquation.setfield(PR,[nonliVars[i]...][1],result)
-								somthingUpdated=true
-								println("non-Linear Solver, solves one equation.")
-							else
-								fullDetermined=false
-							end 
-							i=i+1
-						end
-					end
-				end
-				if !fullDetermined
-					numberOfEquations=length(nonliFuns)
-					println("non-Linear multi-Equation Solver.")
-					#fail to fined non-linear equations with only one unknown 
-					if (!somthingUpdated)
-						i=2
-						while (i<=numberOfEquations && !somthingUpdated)
-							eqIndexes=getAPSOE(1,numberOfEquations,i)
-							for eqIndex in eqIndexes
-								varGroup=getindex(nonliVars,eqIndex)
-								allVars=union(varGroup...)
-								if length(allVars) == i
-									eqGroup=getindex(nonliFuns,eqIndex)
-									println("eqGroup=",eqIndex," for vars:",allVars)
-									indxGroup=map(x->indexin([x...],[allVars...]),varGroup)
-									opt = Opt(:GN_DIRECT_L, i)
-									lower_bounds!(opt, [1.0e-3, 1.0])
-									upper_bounds!(opt, [10.0,2500])
-									stopval!(opt, 1.0e-12)
-									maxtime!(opt, 1.0*i)
-									#ftol_abs!(opt, 1.0e-19)
-									#ftol_rel!(opt, 1.0e-18)
-									min_objective!(opt, (y,gradient)->mapreduce(x->(apply(eqGroup[x],getindex(y,indxGroup[x])))^2,+,[1:i]))
-									(minf,minx,ret)=optimize(opt,ones(Float64,i))
-									println("got $minf at $minx (returned $ret)")
-									if "$ret"=="STOPVAL_REACHED"
-										for j in [1:i]
-											HelperEquation.setfield(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
-										end
-										somthingUpdated=true
-										if i==numberOfEquations
-											fullDetermined=true
-										end
-										break
-									end
-								end
-							end
-							i+=1
-						end
-					end
-				end
-			end
-			if fullDetermined
-				println("Solution Done! v=",round(PR.v,7)," T=",round(PR.T,7)," P=",round(PR.P,7)," h=",round(PR.h_Dep2,7))
-			end
-		end
-	end
-	#*********************
-	function testVariousKnowns()
-		#P & T
-		# butane # 106-97-8
-		cNo="75-07-0"
-		v=0.0;
-		PR=DANAPengRobinson()
-		PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo) 
-		PR.P=PR.Pc
-		PR.T=PR.Tc
-		somthingUpdated=true
-    fullDetermined=false
-    while (somthingUpdated && !fullDetermined)
-      setEquationFlow(PR);
-      rVls,vars,nonliFuns,nonliVars=solve(PR)
-      somthingUpdated,fullDetermined=update!(PR,rVls,vars)
-			if fullDetermined
-				println("solved for v! PR.v=",PR.v)
-				v=PR.v
-			end
-		end
-		#v & T
-		PR=DANAPengRobinson()
-		PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo)
-		PR.v=v
-		PR.T=PR.Tc
-		somthingUpdated=true
-    fullDetermined=false
-    while (somthingUpdated && !fullDetermined)
-      setEquationFlow(PR);
-      rVls,vars,nonliFuns,nonliVars=solve(PR)
-      somthingUpdated,fullDetermined=update!(PR,rVls,vars)
-			if fullDetermined
-				println("solved for P! PR.P=",PR.P)
-			end
-		end
-		#v & P
-		PR=DANAPengRobinson()
-		PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo)
-		PR.v=v
-		PR.P=PR.Pc
-		somthingUpdated=true
-    fullDetermined=false
-    while (somthingUpdated && !fullDetermined)
-      setEquationFlow(PR);
-      rVls,vars,nonliFuns,nonliVars=solve(PR)
-      somthingUpdated,fullDetermined=update!(PR,rVls,vars)
-			if !fullDetermined
-				i=1
-				fullDetermined=true
-				while (i<=length(nonliFuns))
-					if length(nonliVars[i])==1
-						result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
-						HelperEquation.setfield(PR,nonliVars[i][1],result)
-						somthingUpdated=true
-					else
-						fullDetermined=false
-					end 
-					i=i+1
-				end
-			end
-			if fullDetermined
-				println("solved for T! PR.T=",PR.T)
-			end
-		end
-    #h & P
-    global y=PR
-    res=optimize(optFunctionHP, [PR.T/20,PR.h_Dep2/20]);
-    return res;
-	end 
-  function optFunctionHP(x::Vector)
-    b=y.b
-    R=y.R
-    Tc=y.Tc
-    v=y.v
-    d=y.d
-    k=y.k
-    P=y.P
-    T=x[1];
-    h_Dep2=x[2];
-    ret1=h_Dep2-((-4*(b^3*R*T*Tc-2*b^2*R*T*Tc*v+d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))*v^2-b*v*(d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))+R*T*Tc*v)))/(Tc*(b-v)*(b^2-2*b*v-v^2))-(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(-1+(b+v)/(sqrt(2)*b)))/b+(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(1+(b+v)/(sqrt(2)*b)))/b)/4;
-		ret2=P-R*T/(v-b)+(d*(1+k*(1-sqrt(T/Tc)))^2)/(v*v+2*b*v-b*b);
-    return ret1^2+ret2^2;
+
+#generate indexes for all possible system of _noe equations[APSOE]. 
+#where equations is a selection from _minIndex to _maxIndex of a list of equations
+using NLopt
+function getAPSOE(_minIndex::Int,_maxIndex::Int,_noe::Int)
+  if 1<_noe
+    jj::Vector=Vector[]
+    for k in [_minIndex+1:_maxIndex] 
+      j=getAPSOE(k,_maxIndex,_noe-1)
+      jj=append!(jj,[push!(e,k-1) for e in j])
+    end
+    return jj
+  else 
+    return [[i] for i in _minIndex:_maxIndex]
   end
-  # Verification REF[2] Example 5.4
-  function testDeparture()
-    DNpr1=DANAPengRobinson()
-		DNpr2=DANAPengRobinson()
-		DNpr1.P=9.47*1e5
-		DNpr1.T=80+273.15
-		DNpr2.P=18.9*1e5
-		DNpr2.T=120+273.15
-    # butane
-		tc,pc,af=getValueForCasNo("Criticals","106-97-8")
-		DNpr1.Tc=tc
-		DNpr1.Pc=pc
-		DNpr1.af=af
-		DNpr2.Tc=tc
-		DNpr2.Pc=pc
-		DNpr2.af=af
-		somthingUpdated=true
+end
+
+#*********************
+function dumpme(var)
+    println("***dump***")
+    println("PR.Tc , PR.Pc , PR.af , PR.h_Dep , PR.h_Depp , PR.P , PR.T , PR.v")
+    println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," , ",get(var.h_Depp)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
+end
+function testMoreThanOneNonLinear()
+  nonliFuns::Array{Function,1}=Array(Function,0)
+  nonliVars::Array{Set{String},1}=Array(Set{String},0)
+  for k in [1:5]
+    cNo="75-07-0" #Acetaldehyde
+    PR=DANAPengRobinson()
+    Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
+    setfield!(PR,:Tc,Tc)
+    setfield!(PR,:Pc,Pc)
+    setfield!(PR,:af,af)
+    h_Dep,h_Depp,P,T,v=[(NaN,NaN,Pc,Tc,NaN),(NaN,NaN,NaN,Tc,0.21722233067387567),(NaN,NaN,Pc,NaN,0.21722233067387567),(NaN,-1.1096883953196783e7,Pc,NaN,NaN),(-1.1096883953196783e7,NaN,Pc,NaN,NaN)][k]
+    setfield!(PR,:h_Dep,h_Dep)
+    setfield!(PR,:h_Depp,h_Depp)
+    setfield!(PR,:P,P)
+    setfield!(PR,:T,T)
+    setfield!(PR,:v,v)
+    println("----------Solution Starts----------")
+    dumpme(PR)
+    somethingUpdated=true
     fullDetermined=false
-    while (somthingUpdated && !fullDetermined)
-      setEquationFlow(DNpr1);
-      rVls,vars,nonliFuns,nonliVars=solve(DNpr1)
-      somthingUpdated,fullDetermined=update!(DNpr1,rVls,vars)
+    while (somethingUpdated && !fullDetermined)
+      while (somethingUpdated && !fullDetermined)
+        setEquationFlow(PR);
+        #linear solver
+        somethingUpdated,fullDetermined,nonliFuns,nonliVars,noTrys=Solver.slstsubnfd!(PR)
+        println("Linear Solver. number of attempts=",noTrys)
+        if !fullDetermined
+          somethingUpdated=false
+          i=1
+          fullDetermined=true
+          #search for non-linear equations with only one unknown
+          numberOfEquations=length(nonliFuns)
+          while (i<=numberOfEquations && !somethingUpdated)
+            if length(nonliVars[i])==1
+              f_res=NaN
+              varName=[nonliVars[i]...][1]
+              br=getbracket(PR,varName)
+              attem=0
+              gus=getdefault(PR,varName)
+              result=NaN
+              while (isnan(result) || result>br[2] || result<br[1])
+                try
+                  attem+=1
+                  result=Roots.fzero(nonliFuns[i],gus,order=0)
+                  f_res=nonliFuns[i](result)
+                  if (!isnan(result) && result<=br[2] || result>=br[1])
+                    somethingUpdated=true
+                    println("fzero attempt number $attem succ result=$result gus=$gus")
+                  else
+                    println("fzero attempt number $attem fail result=$result gus=$gus")
+                    gus=rand()*(br[2]-br[1])+br[1]
+                  end
+                catch
+                  gus=rand()*(br[2]-br[1])+br[1]
+                end
+              end
+              if somethingUpdated==true
+                Solver.setfield!(PR,varName,result)
+                setEquationFlow(PR);
+                println("non-Linear Solver, solves one equation. $varName = $result  f(result)=$f_res")
+              else
+                println("fzero fail")
+              end
+            else
+              fullDetermined=false
+            end 
+            i=i+1
+          end
+        end
+      end
+      if !fullDetermined
+        numberOfEquations=length(nonliFuns)
+        println("non-Linear multi-Equation Solver.")
+        #fail to fined non-linear equations with only one unknown 
+        somethingUpdated=false
+        i=2
+        while (i<=numberOfEquations && !somethingUpdated)
+          println ("try system of ",i," equations")
+          eqIndexes=getAPSOE(1,numberOfEquations,i)
+          for eqIndex in eqIndexes
+            varGroup=getindex(nonliVars,eqIndex)
+            allVars=union(varGroup...)
+            if length(allVars) == i
+              eqGroup=getindex(nonliFuns,eqIndex)
+              println("eqGroup=",eqIndex," for vars:",allVars)
+              indxGroup=map(x->indexin([x...],[allVars...]),varGroup)
+              opt = Opt(:GN_DIRECT_L, i)
+              lo=Array(Float64,0)
+              up=Array(Float64,0)
+              de=Array(Float64,0)
+              for ii in 1:i
+                push!(lo,(getbracket(PR,[allVars...][ii]))[1])
+                push!(up,(getbracket(PR,[allVars...][ii]))[2])
+                push!(de,(getdefault(PR,[allVars...][ii])))
+              end
+              lower_bounds!(opt, lo)
+              upper_bounds!(opt, up)
+              println("lower bounds=",lo)
+              println("upper bounds=",up)
+              println("defaults=",de)
+              println("indexGroup=",indxGroup)
+              gu=[0.21722233067387567,466.0009882]
+              for x in [1:i]
+                println("eq no $x =",(eqGroup[x](getindex(gu,indxGroup[x])...))^2)
+              end
+              stopval!(opt, 1.0e-12)
+              maxtime!(opt, 1.0*i)
+              ftol_abs!(opt, 1.0e-19)
+              ftol_rel!(opt, 1.0e-18)
+              optfun=(y,gradient)->begin
+                                     #println(y)
+                                     mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:i])
+                                   end
+              println("optfun(gu)=",optfun(gu,[]))
+              min_objective!(opt,optfun)
+              (minf,minx,ret)=optimize(opt,de)
+              println("got $minf at $minx (returned $ret)")
+              if "$ret"=="STOPVAL_REACHED"
+                for j in [1:i]
+                  Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
+                end
+                somethingUpdated=true
+                if i==numberOfEquations
+                  fullDetermined=true
+                end
+                break
+              elseif "$ret"=="MAXTIME_REACHED"
+                println("NLopt fail to MAXTIME_REACHED")
+                return nothing
+              end
+            end
+          end
+          i+=1
+        end
+      end
     end
-    somthingUpdated=true
-    fullDetermined=false
-    while (somthingUpdated && !fullDetermined)
-      setEquationFlow(DNpr2);
-      rVls,vars,nonliFuns,nonliVars=solve(DNpr2)
-      somthingUpdated,fullDetermined=update!(DNpr2,rVls,vars)
+    if fullDetermined
+      dumpme(PR)
+      println("----------Solution Done----------")
     end
-    #ideal gas solution 4738.739992314279
-    println("result is:",4738.739992314279-DNpr1.h_Dep/1000.0+DNpr2.h_Dep/1000.0,"j/mol REF[2] p285 :3522")
-    # REF[2] dh=3.522 (kj/mol)
   end
-  function testPR()
-    h_Dep::Array{Float64,1}=Array(Float64,0)
-    v_Calc::Array{Float64,1}=Array(Float64,0)
-		###### verification: check thermodynamic prop of acetone Ref[1]:Table(2-185) for p=0.1Mpa #######
-    ref_h=[47.730,49.643,54.255,59.166,64.436,70.066]*1000
-    ref_s=[0.16988,0.17552,0.18783,0.19939,0.21049,0.22122]*1000
-    ref_valuse=[25.930,28.002,32.563,36.923,41.200,45.437]
-    ii=1
-		for T in [328.84,350,400,450,500,550]
-			DNpr=DANAPengRobinson()
-			set(DNpr.pi)
-			set(DNpr.R)
-			set(DNpr.T,T)
-			set(DNpr.P,0.1e6)
-			# acetone
-			tc,pc,af=getValueForCasNo("Criticals","67-64-1");
-			set(DNpr.Tc,tc)
-			set(DNpr.Pc,pc)
-			set(DNpr.af,af)
-			somthingUpdated=true
-			fullDetermined=false
-			nonliFuns::Array{Function,1}=Array(Function,0)
-			nonliVars::Array{Set{String},1}=Array(Set{String},0)
-			while (somthingUpdated && !fullDetermined)
-				while (somthingUpdated && !fullDetermined)
-          setEquationFlow(DNpr);
-					rVls,vars,nonliFuns,nonliVars=solve(DNpr)
-					println(DNpr.equationsFlow)
-					somthingUpdated,fullDetermined=update!(DNpr,rVls,vars)					
-					return DNpr
-				end
-				if !fullDetermined
-					i=1
-					fullDetermined=true
-					while (i<=length(nonliFuns))
-						if length(nonliVars[i])==1
-							result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
-							HelperEquation.setfield(DNpr,nonliVars[i][1],result)
-							somthingUpdated=true
-						else
-							fullDetermined=false
-						end 
-						i=i+1
-					end
-				end
-			end
-      #println("T=",DNpr.T," v=",DNpr.v," ref_val=",ref_valuse[ii]) #Table[2.185]
-      #println(" Dh=",DNpr.h_Dep," Ds=",DNpr.s_Dep) #Table[2.185]
-      push!(h_Dep,get(DNpr.h_Dep))
-      push!(v_Calc,get(DNpr.v))
-      ii=ii+1
+end
+#*********************
+function testVariousKnowns()
+  #P & T
+  # butane # 106-97-8
+  cNo="75-07-0"
+  v=0.0;
+  PR=DANAPengRobinson()
+  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo) 
+  PR.P=PR.Pc
+  PR.T=PR.Tc
+  somethingUpdated=true
+  fullDetermined=false
+  while (somethingUpdated && !fullDetermined)
+    setEquationFlow(PR);
+    rVls,vars,nonliFuns,nonliVars=solve(PR)
+    somethingUpdated,fullDetermined=update!(PR,rVls,vars)
+    if fullDetermined
+      println("solved for v! PR.v=",PR.v)
+      v=PR.v
     end
-    # ideal gas
-    #println(h_Dep)
-    #ideal_h=test_IdealGasEos.forAcetone()
-    #res1=(ideal_h/1000.0+h_Dep/1000.0)
-    #println("ideal gas dh (calculated)-> ",round((ideal_h-ideal_h[1])/1000.0)[2:end]," (j/mol)")
-    #println("real gas dh (claculated)->  ",round(res1-res1[1])[2:end]," (j/mol)")
-    #println("reference values->          ",round(ref_h-ref_h[1])[2:end]," (j/mol)")
-	end
+  end
+  #v & T
+  PR=DANAPengRobinson()
+  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo)
+  PR.v=v
+  PR.T=PR.Tc
+  somethingUpdated=true
+  fullDetermined=false
+  while (somethingUpdated && !fullDetermined)
+    setEquationFlow(PR);
+    rVls,vars,nonliFuns,nonliVars=solve(PR)
+    somethingUpdated,fullDetermined=update!(PR,rVls,vars)
+    if fullDetermined
+      println("solved for P! PR.P=",PR.P)
+    end
+  end
+  #v & P
+  PR=DANAPengRobinson()
+  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo)
+  PR.v=v
+  PR.P=PR.Pc
+  somethingUpdated=true
+  fullDetermined=false
+  while (somethingUpdated && !fullDetermined)
+    setEquationFlow(PR);
+    rVls,vars,nonliFuns,nonliVars=solve(PR)
+    somethingUpdated,fullDetermined=update!(PR,rVls,vars)
+    if !fullDetermined
+      i=1
+      fullDetermined=true
+      while (i<=length(nonliFuns))
+        if length(nonliVars[i])==1
+          result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
+          HelperEquation.setfield!(PR,nonliVars[i][1],result)
+          somethingUpdated=true
+        else
+          fullDetermined=false
+        end 
+        i=i+1
+      end
+    end
+    if fullDetermined
+      println("solved for T! PR.T=",PR.T)
+    end
+  end
+  #h & P
+  global y=PR
+  res=optimize(optFunctionHP, [PR.T/20,PR.h_Depp/20]);
+  return res;
+end 
+function optFunctionHP(x::Vector)
+  b=y.b
+  R=y.R
+  Tc=y.Tc
+  v=y.v
+  d=y.d
+  k=y.k
+  P=y.P
+  T=x[1];
+  h_Depp=x[2];
+  ret1=h_Depp-((-4*(b^3*R*T*Tc-2*b^2*R*T*Tc*v+d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))*v^2-b*v*(d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))+R*T*Tc*v)))/(Tc*(b-v)*(b^2-2*b*v-v^2))-(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(-1+(b+v)/(sqrt(2)*b)))/b+(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(1+(b+v)/(sqrt(2)*b)))/b)/4;
+  ret2=P-R*T/(v-b)+(d*(1+k*(1-sqrt(T/Tc)))^2)/(v*v+2*b*v-b*b);
+  return ret1^2+ret2^2;
+end
+# Verification REF[2] Example 5.4
+function testDeparture()
+  DNpr1=DANAPengRobinson()
+  DNpr2=DANAPengRobinson()
+  DNpr1.P=9.47*1e5
+  DNpr1.T=80+273.15
+  DNpr2.P=18.9*1e5
+  DNpr2.T=120+273.15
+  # butane
+  tc,pc,af=getValueForCasNo("Criticals","106-97-8")
+  DNpr1.Tc=tc
+  DNpr1.Pc=pc
+  DNpr1.af=af
+  DNpr2.Tc=tc
+  DNpr2.Pc=pc
+  DNpr2.af=af
+  somethingUpdated=true
+  fullDetermined=false
+  while (somethingUpdated && !fullDetermined)
+    setEquationFlow(DNpr1);
+    rVls,vars,nonliFuns,nonliVars=solve(DNpr1)
+    somethingUpdated,fullDetermined=update!(DNpr1,rVls,vars)
+  end
+  somethingUpdated=true
+  fullDetermined=false
+  while (somethingUpdated && !fullDetermined)
+    setEquationFlow(DNpr2);
+    rVls,vars,nonliFuns,nonliVars=solve(DNpr2)
+    somethingUpdated,fullDetermined=update!(DNpr2,rVls,vars)
+  end
+  #ideal gas solution 4738.739992314279
+  println("result is:",4738.739992314279-DNpr1.h_Dep/1000.0+DNpr2.h_Dep/1000.0,"j/mol REF[2] p285 :3522")
+  # REF[2] dh=3.522 (kj/mol)
+end
+function testPR()
+  h_Dep::Array{Float64,1}=Array(Float64,0)
+  v_Calc::Array{Float64,1}=Array(Float64,0)
+  ###### verification: check thermodynamic prop of acetone Ref[1]:Table(2-185) for p=0.1Mpa #######
+  ref_h=[47.730,49.643,54.255,59.166,64.436,70.066]*1000
+  ref_s=[0.16988,0.17552,0.18783,0.19939,0.21049,0.22122]*1000
+  ref_valuse=[25.930,28.002,32.563,36.923,41.200,45.437]
+  ii=1
+  for T in [328.84,350,400,450,500,550]
+    DNpr=DANAPengRobinson()
+    set(DNpr.pi)
+    set(DNpr.R)
+    set(DNpr.T,T)
+    set(DNpr.P,0.1e6)
+    # acetone
+    tc,pc,af=getValueForCasNo("Criticals","67-64-1");
+    set(DNpr.Tc,tc)
+    set(DNpr.Pc,pc)
+    set(DNpr.af,af)
+    somethingUpdated=true
+    fullDetermined=false
+    nonliFuns::Array{Function,1}=Array(Function,0)
+    nonliVars::Array{Set{String},1}=Array(Set{String},0)
+    while (somethingUpdated && !fullDetermined)
+      while (somethingUpdated && !fullDetermined)
+        setEquationFlow(DNpr);
+        rVls,vars,nonliFuns,nonliVars=solve(DNpr)
+        println(DNpr.equationsFlow)
+        somethingUpdated,fullDetermined=update!(DNpr,rVls,vars)					
+        return DNpr
+      end
+      if !fullDetermined
+        i=1
+        fullDetermined=true
+        while (i<=length(nonliFuns))
+          if length(nonliVars[i])==1
+            result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
+            HelperEquation.setfield!(DNpr,nonliVars[i][1],result)
+            somethingUpdated=true
+          else
+            fullDetermined=false
+          end 
+          i=i+1
+        end
+      end
+    end
+    #println("T=",DNpr.T," v=",DNpr.v," ref_val=",ref_valuse[ii]) #Table[2.185]
+    #println(" Dh=",DNpr.h_Dep," Ds=",DNpr.s_Dep) #Table[2.185]
+    push!(h_Dep,get(DNpr.h_Dep))
+    push!(v_Calc,get(DNpr.v))
+    ii=ii+1
+  end
+  # ideal gas
+  #println(h_Dep)
+  #ideal_h=test_IdealGasEos.forAcetone()
+  #res1=(ideal_h/1000.0+h_Dep/1000.0)
+  #println("ideal gas dh (calculated)-> ",round((ideal_h-ideal_h[1])/1000.0)[2:end]," (j/mol)")
+  #println("real gas dh (claculated)->  ",round(res1-res1[1])[2:end]," (j/mol)")
+  #println("reference values->          ",round(ref_h-ref_h[1])[2:end]," (j/mol)")
 end

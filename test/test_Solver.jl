@@ -90,7 +90,7 @@ function testidealgasfornonlinearsolver2()
       while (i<=length(nonliFuns))
         if length(nonliVars[i])==1
           result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
-          Solver.setfield(DNIdel,[nonliVars[i]...][1],result)
+          Solver.setfield!(DNIdel,[nonliVars[i]...][1],result)
           println("************one nonlinear solution done************")
           somethingUpdated=true
         else

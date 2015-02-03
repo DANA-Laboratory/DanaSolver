@@ -21,22 +21,21 @@ end
 #*********************
 function dumpme(var)
     println("***dump***")
-    println("PR.Tc , PR.Pc , PR.af , PR.h_Dep , PR.h_Depp , PR.P , PR.T , PR.v")
-    println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," , ",get(var.h_Depp)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
+    println("PR.Tc , PR.Pc , PR.af , PR.h_Dep PR.P , PR.T , PR.v")
+    println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
 end
 function testMoreThanOneNonLinear()
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
-  for k in [1:5]
+  for k in [1:4]
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinson()
     Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
     setfield!(PR,:Tc,Tc)
     setfield!(PR,:Pc,Pc)
     setfield!(PR,:af,af)
-    h_Dep,h_Depp,P,T,v=[(NaN,NaN,Pc,Tc,NaN),(NaN,NaN,NaN,Tc,0.21722233067387567),(NaN,NaN,Pc,NaN,0.21722233067387567),(NaN,-1.1096883953196783e7,Pc,NaN,NaN),(-1.1096883953196783e7,NaN,Pc,NaN,NaN)][k]
+    h_Dep,P,T,v=[(NaN,Pc,Tc,NaN),(NaN,NaN,Tc,0.21722233067387567),(NaN,Pc,NaN,0.21722233067387567),(1.1096883953196783e7,Pc,NaN,NaN)][k]
     setfield!(PR,:h_Dep,h_Dep)
-    setfield!(PR,:h_Depp,h_Depp)
     setfield!(PR,:P,P)
     setfield!(PR,:T,T)
     setfield!(PR,:v,v)
@@ -233,7 +232,7 @@ function testVariousKnowns()
   end
   #h & P
   global y=PR
-  res=optimize(optFunctionHP, [PR.T/20,PR.h_Depp/20]);
+  res=optimize(optFunctionHP, [PR.T/20,PR.h_Dep/20]);
   return res;
 end 
 function optFunctionHP(x::Vector)
@@ -245,8 +244,8 @@ function optFunctionHP(x::Vector)
   k=y.k
   P=y.P
   T=x[1];
-  h_Depp=x[2];
-  ret1=h_Depp-((-4*(b^3*R*T*Tc-2*b^2*R*T*Tc*v+d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))*v^2-b*v*(d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))+R*T*Tc*v)))/(Tc*(b-v)*(b^2-2*b*v-v^2))-(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(-1+(b+v)/(sqrt(2)*b)))/b+(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(1+(b+v)/(sqrt(2)*b)))/b)/4;
+  h_Dep=x[2];
+  ret1=h_Dep-((-4*(b^3*R*T*Tc-2*b^2*R*T*Tc*v+d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))*v^2-b*v*(d*(Tc-2*k*(-1+sqrt(T/Tc))*Tc+k^2*(T+Tc-2*sqrt(T/Tc)*Tc))+R*T*Tc*v)))/(Tc*(b-v)*(b^2-2*b*v-v^2))-(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(-1+(b+v)/(sqrt(2)*b)))/b+(sqrt(2)*d*(1+k)*(-1+k*(-1+sqrt(T/Tc)))*log(1+(b+v)/(sqrt(2)*b)))/b)/4;
   ret2=P-R*T/(v-b)+(d*(1+k*(1-sqrt(T/Tc)))^2)/(v*v+2*b*v-b*b);
   return ret1^2+ret2^2;
 end

@@ -62,6 +62,7 @@ function analysis!(exp::Expr,syms::Array{String,1},symsLoc::Set{String})
         end
         return sum
       elseif exp.args[1] == :-
+        length(facAr)==1 && return (-1*facAr[1])
         return (facAr[1]-facAr[2])
       elseif exp.args[1] == :*
         mult=facAr[1]

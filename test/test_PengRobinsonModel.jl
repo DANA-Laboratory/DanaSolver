@@ -125,19 +125,18 @@ function testMoreThanOneNonLinear()
               println("upper bounds=",up)
               println("defaults=",de)
               println("indexGroup=",indxGroup)
-              gu=[0.21722233067387567,466.0009882]
-              for x in [1:i]
-                println("eq no $x =",(eqGroup[x](getindex(gu,indxGroup[x])...))^2)
-              end
               stopval!(opt, 1.0e-12)
               maxtime!(opt, 1.0*i)
               ftol_abs!(opt, 1.0e-19)
               ftol_rel!(opt, 1.0e-18)
               optfun=(y,gradient)->begin
-                                     #println(y)
-                                     mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:i])
+                                     try
+                                       mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:i])
+                                     catch er
+                                       println("in nonlinear optimize , fail with following vals: ",y)
+                                       rethrow(er)
+                                     end
                                    end
-              println("optfun(gu)=",optfun(gu,[]))
               min_objective!(opt,optfun)
               (minf,minx,ret)=optimize(opt,de)
               println("got $minf at $minx (returned $ret)")

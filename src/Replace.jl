@@ -97,7 +97,7 @@ function replace!(expr::Expr,var::Expr,val::Float64)
 end
 
 # replace all occurences of var with wexpr 
-function replace!(ex:Expr,var::Symbol,wexpr::Expr)
+function replace!(ex::Expr,var::Symbol,wexpr::Expr)
   le=length(ex.args)
   i=1
   while(i<le)

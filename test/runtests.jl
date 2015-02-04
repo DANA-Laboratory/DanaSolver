@@ -2,6 +2,7 @@ using ThermophysicalCalculation
 using Base.Test
 using DanaTypes
 
+include ("test_Calls.jl")
 #=include ("test_Solver.jl")
 testforidealgasmodelwithcp()
 testupdate()
@@ -15,6 +16,6 @@ forButane()
 CompPolyVS_Hyper()
 forAcetone()
 forCarbonmonoxide()
-=#
 include ("test_PengRobinsonModel.jl")
 testMoreThanOneNonLinear()
+=#

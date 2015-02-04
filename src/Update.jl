@@ -26,8 +26,13 @@ function update!(danamodel::DanaModel,rre::Array{Float64,2},vars::Array{String,1
       j+=1
     end
     if j==clms
-      setfield!(danamodel,vars[lda],-1*valz[r])
-      somthingUpdated=true
+      try
+        setfield!(danamodel,vars[lda],-1*valz[r])
+        somthingUpdated=true
+      catch er
+        println("in update! can't set ",vars[lda]," with ",-1*valz[r])
+        throw(er)
+      end
     else
       fullDetermined=false
     end

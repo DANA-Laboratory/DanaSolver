@@ -21,8 +21,8 @@ module PengRobinsonModel
           constant(Dict{Symbol,Any}(:Default=>pi)), 
           constant(Dict{Symbol,Any}(:Brief=>"general gas constatnt",:Default=>R,:Unit=>"J/Kmol/Kelvin")),
           "", 
-          volume_mol(Dict{Symbol,Any}(:Upper=>50.0)),
-          temperature(Dict{Symbol,Any}(:Upper=>1000.0)), 
+          volume_mol(Dict{Symbol,Any}(:Upper=>20.0)),
+          temperature(Dict{Symbol,Any}(:Lower=>350.0,:Default=>500,:Upper=>2000.0)), 
           temperature(Dict{Symbol,Any}(:Brief=>"critical temperature")), 
           pressure(),
           pressure(Dict{Symbol,Any}(:Brief=>"critical pressure")),
@@ -43,7 +43,7 @@ module PengRobinsonModel
           coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           coefficient(),
           enth_mol(),
-          enth_mol(),
+          entr_mol(),
           coefficient(Dict{Symbol,Any}(:Default=>0.457235*R^2*AVR_Tc^2/AVR_Pc,:Lower=>0.457235*R^2*MIN_Tc^2/MAX_Pc,:Upper=>0.457235*R^2*MAX_Tc^2/MIN_Pc)),
           [
             :(teta=acos(r/q^1.5)),
@@ -97,7 +97,7 @@ module PengRobinsonModel
       Z::coefficient
       o::coefficient
       h_Dep::enth_mol
-      s_Dep::enth_mol
+      s_Dep::entr_mol
       a::coefficient
       #equations
       equations::Array{Expr,1}

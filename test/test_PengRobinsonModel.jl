@@ -21,21 +21,22 @@ end
 #*********************
 function dumpme(var)
     println("***dump***")
-    println("PR.Tc , PR.Pc , PR.af , PR.h_Dep PR.P , PR.T , PR.v")
-    println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
+    println("PR.Tc , PR.Pc , PR.af , PR.h_Dep , PR.s_Dep , PR.P , PR.T , PR.v")
+    println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," ,  ",get(var.s_Dep)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
 end
 function testMoreThanOneNonLinear()
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
-  for k in [1:6]
+  for k in [1:9]
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinson()
     Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
     setfield!(PR,:Tc,Tc)
     setfield!(PR,:Pc,Pc)
     setfield!(PR,:af,af)
-    h_Dep,P,T,v=[(NaN,Pc,Tc,NaN),(NaN,NaN,Tc,0.21722233067387567),(NaN,Pc,NaN,0.21722233067387567),(1.1096883953196783e7,Pc,NaN,NaN),(1.1096883953196783e7,NaN,Tc,NaN),(1.1096883953196783e7,NaN,NaN,0.21722233067387567)][k]
+    h_Dep,s_Dep,P,T,v=[(NaN,NaN,Pc,Tc,NaN),(NaN,NaN,NaN,Tc,0.21722233067387567),(NaN,NaN,Pc,NaN,0.21722233067387567),(1.1096883953196783e7,NaN,Pc,NaN,NaN),(1.1096883953196783e7,NaN,NaN,Tc,NaN),(1.1096883953196783e7,NaN,NaN,NaN,0.21722233067387567),(NaN,20135.0,Pc,NaN,NaN),(NaN,20135.0,NaN,Tc,NaN),(NaN,20135.0,NaN,NaN,0.21722233067387567)][k]
     setfield!(PR,:h_Dep,h_Dep)
+    setfield!(PR,:s_Dep,s_Dep)
     setfield!(PR,:P,P)
     setfield!(PR,:T,T)
     setfield!(PR,:v,v)

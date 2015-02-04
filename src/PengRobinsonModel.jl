@@ -43,7 +43,7 @@ module PengRobinsonModel
           coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           coefficient(),
           enth_mol(),
-          entr_mol(),
+          enth_mol(),
           coefficient(Dict{Symbol,Any}(:Default=>0.457235*R^2*AVR_Tc^2/AVR_Pc,:Lower=>0.457235*R^2*MIN_Tc^2/MAX_Pc,:Upper=>0.457235*R^2*MAX_Tc^2/MIN_Pc)),
           [
             :(teta=acos(r/q^1.5)),
@@ -60,7 +60,7 @@ module PengRobinsonModel
             :(delta=B^3+B^2-A*B),
             :(q=(beta*beta-3*gama)/9),
             :(r=(2*beta^3-9*beta*gama+27*delta)/54),
-            :(s_Dep=R*(log(Z-B)-2.078*k*((1+k)/sqrt(T/Tc)-k)*log((Z+2.414*B)/(Z-0.414*B)))), #REF[2]
+            :(s_Dep=R*((R*T*Tc*log(v)-R*T*Tc*log(-b+v)-(a*k*(-(k*T)+sqrt(T/Tc)*Tc+k*sqrt(T/Tc)*Tc)*(log(-1+(b+v)/(sqrt(2)*b))-log(1+(b+v)/(sqrt(2)*b))))/(2*sqrt(2)*b))/(R*T*Tc)-log((v*((R*T)/(-b+v)+(a*(-1+k*(-1+sqrt(T/Tc)))^2)/(b^2-2*b*v-v^2)))/(R*T)))),
             :(h_Dep=R*T*(1-(v*((R*T)/(-b+v)-(a*(1+k*(1-sqrt(T/Tc)))^2)/(-b^2+2*b*v+v^2)))/(R*T)+(a*(1+k)*sqrt(T/Tc)*(-(k*T)+sqrt(T/Tc)*Tc+k*sqrt(T/Tc)*Tc)*(-log(-1+(b+v)/(sqrt(2)*b))+log(1+(b+v)/(sqrt(2)*b))))/(2*sqrt(2)*b*R*T^2))),
             :(a=0.457235*R^2*Tc^2/Pc), #REF[3]
             :(o=cbrt((r^2-q^3)^0.5+abs(r))),
@@ -97,7 +97,7 @@ module PengRobinsonModel
       Z::coefficient
       o::coefficient
       h_Dep::enth_mol
-      s_Dep::entr_mol
+      s_Dep::enth_mol
       a::coefficient
       #equations
       equations::Array{Expr,1}

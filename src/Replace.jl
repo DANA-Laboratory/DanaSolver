@@ -96,3 +96,16 @@ function replace!(expr::Expr,var::Expr,val::Float64)
   end
 end
 
+# replace all occurences of var with wexpr 
+function replace!(ex:Expr,var::Symbol,wexpr::Expr)
+  le=length(ex.args)
+  i=1
+  while(i<le)
+    if (typeof(ex.args[i])==Symbol && ex.args[i]==var)
+      ex.args[i]=wexpr
+    elseif (typeof(ex.args[i])==Expr)
+      replace!(ex.args[i],var,wexpr)
+    end
+    i+=1
+  end
+end

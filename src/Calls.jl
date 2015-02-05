@@ -1,4 +1,23 @@
-function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=30,ord=0)
+#find zero of y->g(X,y) and return f(X,Y)
+initial=NaN 
+function callffzero(x,g::Function,gde,gbracket,f::Function)
+  attempt=0
+  global initial
+  isnan(initial) && (initial=gde)
+  while attempt<1000
+    try
+      y=Roots.fzero(y->g(x,y),initial,order=0)
+      initial=y
+      return f(x,y)
+    catch er
+      initial=rand()*(gbracket[2]-gbracket[1])+gbracket[1]
+      attempt+=1
+    end
+  end
+  println ("in callffzero no answer after $attempt attempts")
+  return NaN
+end
+function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=300,ord=0)
   result=NaN
   attempt=0
   firstLoopDone=false

@@ -27,8 +27,8 @@ function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=30
     rethrow(er)
   end
 end
-function callmin(eqGroup::Vector{Function},indexGroup::Vector{Tuple},lo::Vector{Float64},up::Vector{Float64},de::Vector{Float64})
-  numberOfEquations=length(nonliFuns)
+function callmin(eqGroup::Vector{Function},indxGroup::Vector{Vector{Int32}},lo::Vector{Float64},up::Vector{Float64},de::Vector{Float64})
+  numberOfEquations=length(eqGroup)
   somethingUpdated=false
   opt = Opt(:GN_DIRECT_L, length(eqGroup))
   lower_bounds!(opt, lo)
@@ -39,7 +39,7 @@ function callmin(eqGroup::Vector{Function},indexGroup::Vector{Tuple},lo::Vector{
   ftol_rel!(opt, 1.0e-18)
   optfun=(y,gradient)->begin
     try
-      mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:i])
+      mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:numberOfEquations])
     catch er
       println("in nonlinear optimize , fail with following vals: ",y)
       rethrow(er)

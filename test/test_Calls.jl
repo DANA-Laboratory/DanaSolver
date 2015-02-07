@@ -24,7 +24,8 @@ f(x,y)=begin
         return x^3+log(y)
        end
 g(x,y)=begin
-        #println("in g $x , $y");
+        global output
+        output && println("in g $x , $y");
         return log(x-y)
        end
 indG=Array((Vector{Int}),0)
@@ -32,19 +33,18 @@ push!(indG,[1,2],[1,2])
 # cant solve because it sends y>x and log(x-y) fails 
 @test_throws DomainError Solver.callmin([f,g],indG,[0.0,0.0],[100.0,100.0],[10.0,1.0])
 
-println("********test fzero(f(x,fzero(g(x,y)))) instead of opt ********")
+println("********test fzero(f(x,fzero(g(x,y)))) instead of opt********")
 @time r=Solver.callfzero(x->f(x,Solver.callfzero(y->g(x,y),50.0,[0.0,100.0],1000)[1]),50.0,[0.0,100.0],1000)
 println("use 2 fzeroz ->",r)
 
-println("********test ffzero(g,f) instead of opt ********")
+gg(vec_x)=g(vec_x...)
+ff(vec_x)=f(vec_x...)
+println("********test ffzero(g,f) instead of opt********")
 initial=NaN
-@time r=Solver.callfzero(x->Solver.callffzero(x,g,50.0,[0.0,100.0],f),50.0,[0.0,100.0],1000)
+@time r=Solver.callfzero(x->Solver.callffzero(x,gg,50.0,[0.0,100.0],ff),50.0,[0.0,100.0],10)
 println("use ffzero ->",r)
 
-#output=true
-
-println("********test ffzero(f,g) instead of opt ********")
+println("********test ffzero(f,g) instead of opt********")
 initial=NaN
-@time r=Solver.callfzero(x->Solver.callffzero(x,f,50.0,[0.0,Inf],g),50.0,[0.0,100.0],1000)
+@time r=Solver.callfzero(x->Solver.callffzero(x,ff,50.0,[0.0,1.0],gg),1.0,[0.0,100.0],10)
 println("use ffzero ->",r)
-

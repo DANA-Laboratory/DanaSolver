@@ -4,18 +4,23 @@ function callffzero(x,g::Function,gde,gbracket,f::Function)
   attempt=0
   global initial
   isnan(initial) && (initial=gde)
-  while attempt<1000
+  while attempt<5
     try
-      y=Roots.fzero(y->g(x,y),initial,order=0)
+      y=Roots.fzero(y->g([x,y]),initial,order=0)
+      #println("find zero @(x=$x,y=$y) initial=$initial f([x,y])=",f([x,y]))
       initial=y
-      return f(x,y)
+      return f([x,y])
     catch er
-      initial=rand()*(gbracket[2]-gbracket[1])+gbracket[1]
-      attempt+=1
+      if er == DomainError()
+        initial=rand()*(gbracket[2]-gbracket[1])+gbracket[1]
+        attempt+=1
+      else
+        rethrow(er)
+      end
     end
   end
-  println ("in callffzero no answer after $attempt attempts")
-  return NaN
+  #println ("in callffzero no answer after $attempt attempts")
+  throw(DomainError)
 end
 function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=300,ord=0)
   result=NaN
@@ -39,6 +44,7 @@ function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=30
       end
     end
   end
+  #println("in callfzero attemp=$attempt firstLoopDone=$firstLoopDone result=$result")
   try
     firstLoopDone && (return Roots.fzero(fun,gus,br))
   catch er 
@@ -46,7 +52,7 @@ function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=30
     rethrow(er)
   end
 end
-function callmin(eqGroup::Vector{Function},indxGroup::Vector{Vector{Int32}},lo::Vector{Float64},up::Vector{Float64},de::Vector{Float64})
+function callmin(eqGroup::Vector{Function},indxGroup::Vector{Vector{Int}},lo::Vector{Float64},up::Vector{Float64},de::Vector{Float64})
   numberOfEquations=length(eqGroup)
   somethingUpdated=false
   opt = Opt(:GN_DIRECT_L, length(eqGroup))

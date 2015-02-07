@@ -20,14 +20,14 @@ end
 
 #*********************
 function dumpme(var)
-    println("***dump***")
-    println("PR.Tc , PR.Pc , PR.af , PR.h_Dep , PR.s_Dep , PR.P , PR.T , PR.v")
-    println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," ,  ",get(var.s_Dep)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
+  println("***dump***")
+  println("PR.Tc , PR.Pc , PR.af , PR.h_Dep , PR.s_Dep , PR.P , PR.T , PR.v")
+  println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.h_Dep)," ,  ",get(var.s_Dep)," , ",get(var.P)," , ",get(var.T)," , ",get(var.v))
 end
 function testMoreThanOneNonLinear()
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
-  for k in [1:9]
+  for k in [7:9]
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinson()
     Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
@@ -109,8 +109,6 @@ function testMoreThanOneNonLinear()
             if length(allVars) == i
               eqGroup=getindex(nonliFuns,eqIndex)
               println("eqGroup=",eqIndex," for vars:",allVars)
-              indxGroup=map(x->indexin([x...],[allVars...]),varGroup)
-              opt = Opt(:GN_DIRECT_L, i)
               lo=Array(Float64,0)
               up=Array(Float64,0)
               de=Array(Float64,0)
@@ -119,39 +117,57 @@ function testMoreThanOneNonLinear()
                 push!(up,(getbracket(PR,[allVars...][ii]))[2])
                 push!(de,(getdefault(PR,[allVars...][ii])))
               end
-              lower_bounds!(opt, lo)
-              upper_bounds!(opt, up)
+              indxGroup=map(x->indexin([x...],[allVars...]),varGroup)
               println("lower bounds=",lo)
               println("upper bounds=",up)
               println("defaults=",de)
               println("indexGroup=",indxGroup)
-              stopval!(opt, 1.0e-12)
-              maxtime!(opt, 1.0*i)
-              ftol_abs!(opt, 1.0e-19)
-              ftol_rel!(opt, 1.0e-18)
-              optfun=(y,gradient)->begin
-                                     try
-                                       mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:i])
-                                     catch er
-                                       println("in nonlinear optimize , fail with following vals: ",y)
-                                       rethrow(er)
-                                     end
-                                   end
-              min_objective!(opt,optfun)
-              (minf,minx,ret)=optimize(opt,de)
-              println("got $minf at $minx (returned $ret)")
-              if "$ret"=="STOPVAL_REACHED"
-                for j in [1:i]
-                  Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
-                end
+              # use multiple fzeroz instead
+              if (i==2)
+                funcs=[y->eqGroup[1](getindex(y,indxGroup[1])...),y->eqGroup[2](getindex(y,indxGroup[2])...)]
+                println("using multiple fzeroz")
+                @time r=Solver.callfzero(x->Solver.callffzero(x,funcs[1],de[2],[lo[2],up[2]],funcs[2]),de[1],[lo[1],up[1]],1000)
+                println ("result=",r[1],' ',Solver.initial)
+                Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][1],r[1])
+                Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][2],Solver.initial)
                 somethingUpdated=true
                 if i==numberOfEquations
                   fullDetermined=true
                 end
+                println("using opt")
+                opt = Opt(:GN_DIRECT_L, i)
+                lower_bounds!(opt, lo)
+                upper_bounds!(opt, up)
+                stopval!(opt, 1.0e-12)
+                maxtime!(opt, 1.0*i)
+                ftol_abs!(opt, 1.0e-19)
+                ftol_rel!(opt, 1.0e-18)
+                optfun=(y,gradient)->begin
+                  try
+                    mapreduce(x->(eqGroup[x](getindex(y,indxGroup[x])...))^2,+,[1:i])
+                  catch er
+                    println("in nonlinear optimize , fail with following vals: ",y)
+                    rethrow(er)
+                  end
+                end
+                min_objective!(opt,optfun)
+                try
+                  @time (minf,minx,ret)=optimize(opt,de)
+                  println("got $minf at $minx (returned $ret)")
+                  if "$ret"=="STOPVAL_REACHED"
+                    for j in [1:i]
+                      Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
+                    end
+                    somethingUpdated=true
+                    if i==numberOfEquations
+                      fullDetermined=true
+                    end
+                  elseif "$ret"=="MAXTIME_REACHED"
+                    println("NLopt fail to MAXTIME_REACHED")
+                  end
+                catch er
+                end
                 break
-              elseif "$ret"=="MAXTIME_REACHED"
-                println("NLopt fail to MAXTIME_REACHED")
-                return nothing
               end
             end
           end

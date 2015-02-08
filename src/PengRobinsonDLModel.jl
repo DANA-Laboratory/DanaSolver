@@ -2,34 +2,36 @@
 # REF[2] http://en.wikipedia.org/wiki/Departure_function
 # REF[3] http://en.wikipedia.org/wiki/Equation_of_state#Peng.E2.80.93Robinson_equation_of_state
 # REF[4] Thermo-Hydro-Mechanical-Chemical Processes-in Fractured Porous Media
-module PengRobinsonModel
+module PengRobinsonDLModel
   # Units J,Kmol,Kelvin,pascal
   using DanaTypes
   using EMLtypes
   import DanaTypes.setEquationFlow
-  export DANAPengRobinson,setEquationFlow
+  export DANAPengRobinsonDL,setEquationFlow
   const R=8314.4621 #general gas constatnt "J/Kmol/Kelvin"
   const AVR_Tc=548.33512173913 #REF: Pkg.test("ThermodynamicsTable")
   const AVR_Pc=8.752551304347826e6
+  const MAX_Zc=0.428
+  const MIN_Zc=0.117
   const MAX_Tc=1113.0
   const MIN_Tc=5.2
   const MAX_Pc=6.162e8
   const MIN_Pc=227500.0
-  type  DANAPengRobinson <: DanaModel
-      DANAPengRobinson()=begin
+  type  DANAPengRobinsonDL <: DanaModel
+      DANAPengRobinsonDL()=begin
         new(
           constant(Dict{Symbol,Any}(:Default=>pi)), 
           constant(Dict{Symbol,Any}(:Brief=>"general gas constatnt",:Default=>R,:Unit=>"J/Kmol/Kelvin")),
           "", 
-          volume_mol(Dict{Symbol,Any}(:Upper=>20.0)),
-          temperature(Dict{Symbol,Any}(:Lower=>350.0,:Default=>500,:Upper=>2000.0)), 
+          #parameters
+          coefficient(Dict{Symbol,Any}(:Brief=>"critical compressibility",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           temperature(Dict{Symbol,Any}(:Brief=>"critical temperature")), 
-          pressure(),
           pressure(Dict{Symbol,Any}(:Brief=>"critical pressure")),
           coefficient(),
           coefficient(),
           coefficient(),
-          coefficient(Dict{Symbol,Any}(:Lower=>eps(Float64),:Upper=>1/0.414,:Default=>0.1)), #B log(x>0)
+          coefficient(),
+          coefficient(),
           coefficient(),
           coefficient(),
           coefficient(),
@@ -42,50 +44,61 @@ module PengRobinsonModel
           coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           coefficient(Dict{Symbol,Any}(:Brief=>"compressibility factor",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           coefficient(),
-          enth_mol(),
-          entr_mol(),
-          coefficient(Dict{Symbol,Any}(:Default=>0.457235*R^2*AVR_Tc^2/AVR_Pc,:Lower=>0.457235*R^2*MIN_Tc^2/MAX_Pc,:Upper=>0.457235*R^2*MAX_Tc^2/MIN_Pc)),
+          coefficient(),
+          #variables
+          coefficient(Dict{Symbol,Any}(:Brief=>"volume dimensionless")),
+          coefficient(Dict{Symbol,Any}(:Brief=>"temprature dimensionless")),
+          coefficient(Dict{Symbol,Any}(:Brief=>"pressure dimensionless")),
+          coefficient(Dict{Symbol,Any}(:Brief=>"enthalpy dimensionless")),
+          coefficient(Dict{Symbol,Any}(:Brief=>"entropy dimensionless")),
+          coefficient(Dict{Symbol,Any}(:Brief=>"gibbs dimensionless")),
           [
             :(teta=acos(r/q^1.5)),
             :(Z1=-2*sqrt(q)*cos(teta/3)-beta/3),
             :(Z2=-2*sqrt(q)*cos((teta+2*pi)/3)-beta/3),
             :(Z3=-2*sqrt(q)*cos((teta+4*pi)/3)-beta/3),
-            :(P=R*T/(v-b)-(a*(1+k*(1-sqrt(T/Tc)))^2)/(v*v+2*b*v-b*b)),
-            :(Z=P*v/R/T),
-            :(A=(a*(1+k*(1-sqrt(T/Tc)))^2)*P/R^2/T^2),#alpha=(1+k*(1-sqrt(T/Tc)))^2
-            :(b=0.077796*R*Tc/Pc), #REF[3]
-            :(B=b*P/R/T),
+            :(Pr=Tr/(vr-br)/Zc-(ar*alpha)/(vr^2+2*br*vr-br^2)),
+            :(Z=Pr*vr*Zc/Tr),
+            :(A=(ar*alpha)*Pr*Zc^2/Tr^2),
+            :(alpha=(1+k*(1-sqrt(Tr)))^2),
+            :(br=0.077796/Zc), #REF[3]
+            :(B=br*Zc*Pr/Tr),
             :(beta=B-1),
             :(gama=A-3*B^2-2*B),
             :(delta=B^3+B^2-A*B),
             :(q=(beta*beta-3*gama)/9),
             :(r=(2*beta^3-9*beta*gama+27*delta)/54),
-            :(s_Dep=R*((R*T*Tc*log(v)-R*T*Tc*log(-b+v)-(a*k*(-(k*T)+sqrt(T/Tc)*Tc+k*sqrt(T/Tc)*Tc)*(log(-1+(b+v)/(sqrt(2)*b))-log(1+(b+v)/(sqrt(2)*b))))/(2*sqrt(2)*b))/(R*T*Tc)-log((v*((R*T)/(-b+v)+(a*(-1+k*(-1+sqrt(T/Tc)))^2)/(b^2-2*b*v-v^2)))/(R*T)))),
-            :(h_Dep=R*T*(1-(v*((R*T)/(-b+v)-(a*(1+k*(1-sqrt(T/Tc)))^2)/(-b^2+2*b*v+v^2)))/(R*T)+(a*(1+k)*sqrt(T/Tc)*(-(k*T)+sqrt(T/Tc)*Tc+k*sqrt(T/Tc)*Tc)*(-log(-1+(b+v)/(sqrt(2)*b))+log(1+(b+v)/(sqrt(2)*b))))/(2*sqrt(2)*b*R*T^2))),
-            :(a=0.457235*R^2*Tc^2/Pc), #REF[3]
+            #0.457235/0.077796/2/sqrt(2)=2.0779601078193677~2.07796
+            :(s_Dep=2.07796*k*((1+k)/sqrt(Tr)-k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr))-log(Z-B)),
+            :(h_Dep=1-Z+(2.07796*sqrt(alpha)*(1+k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))),
+            :(g_Dep=1-Z+(alpha*ar*Zc*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))/(sqrt(2)*br*Tr)+log(((-br+vr)^Zc*Z)/vr)),
+            :(ar=0.457235/Zc^2), #REF[3]
             :(o=cbrt((r^2-q^3)^0.5+abs(r))),
             :(Z=-sign(r)*(o+q/o)-beta/3),
             :(k=0.37464+1.54226*af-0.26992*af^2), #REF[4] 2.87
             :(k=0.379642+1.48503*af-0.164423*af^2+0.016666*af^3) #REF[4] 2.88
-          ],Array(Expr,0)
+          ],
+          Array(Expr,0),
+          [:pi,:R,:name],
+          [:Zc,:Tc,:Pc,:k,:beta,:gama,:alpha,:A,:B,:br,:delta,:q,:r,:teta,:af,:Z1,:Z2,:Z3,:Z,:o,:ar],
+          [:vr,:Tr,:Pr,:h_Dep,:s_Dep,:g_Dep]
         )
       end
-      #paremeters
+      #consts
       pi::constant
       R::constant
-      CASNO::String
-      #variables
-      v::volume_mol
-      T::temperature
+      name::String
+      #parameters
+      Zc::coefficient
       Tc::temperature
-      P::pressure
       Pc::pressure
       k::coefficient
-      A::coefficient
-      b::coefficient
-      B::coefficient
       beta::coefficient
       gama::coefficient
+      alpha::coefficient
+      A::coefficient
+      B::coefficient
+      br::coefficient
       delta::coefficient
       q::coefficient
       r::coefficient
@@ -96,23 +109,31 @@ module PengRobinsonModel
       Z3::coefficient
       Z::coefficient
       o::coefficient
-      h_Dep::enth_mol
-      s_Dep::entr_mol
-      a::coefficient
+      ar::coefficient
+      #variables
+      vr::coefficient
+      Tr::coefficient
+      Pr::coefficient
+      h_Dep::coefficient
+      s_Dep::coefficient
+      g_Dep::coefficient
       #equations
       equations::Array{Expr,1}
       equationsFlow::Array{Expr,1}
+      constants::Array{Symbol,1}
+      parameters::Array{Symbol,1}
+      variables::Array{Symbol,1}
   end
-  function setEquationFlow(this::DANAPengRobinson)
+  function setEquationFlow(this::DANAPengRobinsonDL)
     if !(this.q.unset) && !(this.r.unset) && (get(this.q)^3-get(this.r)^2)<0
-      this.equationsFlow=this.equations[5:19];
+      this.equationsFlow=this.equations[5:21];
     else
-      this.equationsFlow=this.equations[1:17];
+      this.equationsFlow=this.equations[1:19];
     end
     if get(this.af)>0.49
-      this.equationsFlow=[this.equationsFlow,this.equations[21]]
+      this.equationsFlow=[this.equationsFlow,this.equations[22]]
     else
-      this.equationsFlow=[this.equationsFlow,this.equations[20]]    
+      this.equationsFlow=[this.equationsFlow,this.equations[23]]    
     end
 
     if this.Z.unset && !(this.Z1.unset) && !(this.Z2.unset) && !(this.Z3.unset)

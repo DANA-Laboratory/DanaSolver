@@ -16,5 +16,5 @@ CompPolyVS_Hyper()
 forAcetone()
 forCarbonmonoxide()
 =#
-include ("test_PengRobinsonModel.jl")
+include ("test_PengRobinsonDLModel.jl")
 testMoreThanOneNonLinear()

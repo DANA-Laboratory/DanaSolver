@@ -27,7 +27,11 @@ end
 function testMoreThanOneNonLinear()
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
+<<<<<<< HEAD
   for k in [1:1]
+=======
+  for k in [7:9]
+>>>>>>> 51070b8a2374541b9ce67b15a185185c22b996d6
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinson()
     Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
@@ -127,7 +131,13 @@ function testMoreThanOneNonLinear()
                 funcs=[y->eqGroup[1](getindex(y,indxGroup[1])...),y->eqGroup[2](getindex(y,indxGroup[2])...)]
                 println("using multiple fzeroz")
                 @time r=Solver.callfzero(x->Solver.callffzero(x,funcs[1],de[2],[lo[2],up[2]],funcs[2]),de[1],[lo[1],up[1]],1000)
-                println ("result=",r[1])
+                println ("result=",r[1],' ',Solver.initial)
+                Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][1],r[1])
+                Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][2],Solver.initial)
+                somethingUpdated=true
+                if i==numberOfEquations
+                  fullDetermined=true
+                end
                 println("using opt")
                 opt = Opt(:GN_DIRECT_L, i)
                 lower_bounds!(opt, lo)
@@ -145,21 +155,23 @@ function testMoreThanOneNonLinear()
                   end
                 end
                 min_objective!(opt,optfun)
-                @time (minf,minx,ret)=optimize(opt,de)
-                println("got $minf at $minx (returned $ret)")
-                if "$ret"=="STOPVAL_REACHED"
-                  for j in [1:i]
-                    Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
+                try
+                  @time (minf,minx,ret)=optimize(opt,de)
+                  println("got $minf at $minx (returned $ret)")
+                  if "$ret"=="STOPVAL_REACHED"
+                    for j in [1:i]
+                      Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
+                    end
+                    somethingUpdated=true
+                    if i==numberOfEquations
+                      fullDetermined=true
+                    end
+                  elseif "$ret"=="MAXTIME_REACHED"
+                    println("NLopt fail to MAXTIME_REACHED")
                   end
-                  somethingUpdated=true
-                  if i==numberOfEquations
-                    fullDetermined=true
-                  end
-                  break
-                elseif "$ret"=="MAXTIME_REACHED"
-                  println("NLopt fail to MAXTIME_REACHED")
-                  return nothing
+                catch er
                 end
+                break
               end
             end
           end

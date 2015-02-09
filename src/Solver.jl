@@ -9,6 +9,17 @@ module Solver
   include ("Analysis.jl")
   include ("Update.jl")
   include ("Calls.jl")  
+
+  #convert expr to function of symsLoc --moves from analysis
+  function exprTofunction(ex::Expr,symsLoc::Set{String})
+    ret::Expr=:(()->())
+    ret.args[2].args[2]=ex
+    for s in symsLoc
+      push!(ret.args[1].args,symbol(s))
+    end
+    return eval(ret)
+  end
+
   #replace known arguments in _eq::Function argument list and returns another function with only unknowns 
   #for unknown arguments pass NaN in _argsArray
   #getEq([1.1,2.3,NaN,-3.1,NaN],fun) -> _fun(arg1,arg2)=fun(1.1,2.3,arg1,-3.1,arg2)
@@ -35,14 +46,20 @@ module Solver
 
   #solve li plus one nonlinear
   function sliponl!(danamodel::DanaModel)
-    nonliArgs::Array{Set{String},1}=Array(Set{String},0)
+    args::Array{Set{String},1}=Array(Set{String},0)
+    nonliExprIndx::Array{Int,1}=Array(Int,0)
+    equations::Array{Expr,1}=Array(Expr,0)
     nonliFuns::Array{Function,1}=Array(Function,0)
     somethingUpdated=true
     fullDetermined=false
     noliTrys=0
     nonlTrys=0
     while (somethingUpdated && !fullDetermined)
-      somethingUpdated,fullDetermined,nonliFuns,nonliArgs,noTrys=slstsubnfd!(danamodel)
+      somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys=slstsubnfd!(danamodel)
+      #TODO
+      #find a system to solve
+      systemindx,systemargs=findsystem(args)
+      #after a linear solution and before nonlisolution replace parameters
       noliTrys+=noTrys
       if !fullDetermined
         somethingUpdated,fullDetermined,noTrys=snleoovobo!(danamodel,nonliFuns,nonliArgs)
@@ -108,20 +125,21 @@ module Solver
   
   # Solve Linear System Til Something Updated But Not Full Determined
   function slstsubnfd!(danamodel::DanaModel)
-    nonliArgs::Array{Set{String},1}=Array(Set{String},0)
-    nonliFuns::Array{Function,1}=Array(Function,0)
+    args::Array{Set{String},1}=Array(Set{String},0)
+    nonliExprIndx::Array{Int,1}=Array(Int,0)
+    equations::Array{Expr,1}=Array(Expr,0)
     noTrys=0
     somethingUpdated=true
     fullDetermined=false
     while (somethingUpdated && !fullDetermined)
       noTrys+=1
-      rVls,vars,nonliFuns,nonliArgs=solvelinear(danamodel)
+      rVls,vars,nonliExprIndx,args,equations=solvelinear(danamodel)
       println(rVls)
       println(vars)
       somethingUpdated,fullDetermined=update!(danamodel,rVls,vars)
       somethingUpdated && setEquationFlow(danamodel)
     end
-    return somethingUpdated,fullDetermined,nonliFuns,nonliArgs,noTrys
+    return somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys
   end
 
   # Solve NonLinear Equations of One Variable One By One
@@ -169,10 +187,10 @@ module Solver
       end
     end
     #equations=vals*vars (linear equations)
-    vals,vars,nolinearFunctions,nolinearArgs=analysis(sequations)
+    vals,vars,nolinearExprIndx,nolinearArgs=analysis(sequations)
     #reduced row echelon form
     rreModel=rref(vals)
-    return rreModel,vars,nolinearFunctions,nolinearArgs
+    return rreModel,vars,nolinearExprIndx,nolinearArgs,sequations
   end
   function rref(U::Array{Float64,2})		
     nr, nc = size(U)		
@@ -208,13 +226,30 @@ module Solver
   end		
   rref(x::Number) = one(x)
   
+  function findsystem(args::Array{Set{String},1})
+    numberOfEquations=length(args)
+    noe=1 #number of equations
+    while (noe<=numberOfEquations)
+      eqIndexes=getapsoe(1,numberOfEquations,noe)
+      for eqIndex in eqIndexes
+        varGroup=getindex(args,eqIndex)
+        allVars=union(varGroup...)
+        if length(allVars) == noe
+          varIndex=map(x->indexin([x...],[allVars...]),varGroup)
+          return varIndex,allVars,eqIndex
+        end
+      end
+      noe+=1
+    end
+  end
+  
   #generate indexes for all possible system of _noe equations[APSOE]. 
   #where equations are selected from _minIndex to _maxIndex of a list of equations
   function getapsoe(minIndex::Int,maxIndex::Int,noe::Int)
     if 1<noe
       jj::Vector=Vector[]
       for k in [minIndex+1:maxIndex] 
-        j=getAPSOE(k,maxIndex,noe-1)
+        j=getapsoe(k,maxIndex,noe-1)
         jj=append!(jj,[push!(e,k-1) for e in j])
       end
       return jj

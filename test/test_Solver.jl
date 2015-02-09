@@ -116,3 +116,10 @@ function testsolve()
   somethingUpdated,fullDetermined,noliTrys,nonlTrys=Solver.sliponl!(DNIdel)
   println("somethingUpdate=",somethingUpdated," fullDetermined=",fullDetermined," noliTrys=",noliTrys," nonlTrys=",nonlTrys)
 end
+function testfindsystem()
+  args=[Set(String["c","d","c"]),Set(String["b","c","i"]),Set(String["d","g","h"]),Set(String["d","c","i"]),Set(String["a","d","k"]),Set(String["b","a","c"]),Set(String["a","b","c"]),Set(String["a","d"]),Set(String["d","e"]),Set(String["e","f"]),Set(String["f","b","e"]),Set(String["e","k"])]
+  a,b,c=Solver.findsystem(args)
+  println(a)
+  println(b)
+  println(c)
+end

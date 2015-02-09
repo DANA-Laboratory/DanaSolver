@@ -1,37 +1,29 @@
 isconstantfactor(fac::Array{Float64})=all(map(x->x==0.0,fac[2:end]))
-function exprTofunction(ex::Expr,symsLoc::Set{String})
-  ret::Expr=:(()->())
-  ret.args[2].args[2]=ex
-  for s in symsLoc
-    push!(ret.args[1].args,symbol(s))
-   end
-  return eval(ret)
-end
-function analysis(exps::Array{Expr,1},all::Bool=false)
+function analysis(exps::Array{Expr,1})
   syms::Array{String,1}=Array(String,0)
-  nolinearFunctions::Array{Function,1}=Array(Function,0)
+  nonlinearExpIndx::Array{Int,1}=Array(Int,0)
   nolinearArgs::Array{Set{String},1}=Array(Set{String},0)
   #by default expr must have a constant symbol
   push!(syms,"constant")
   i=1
+  j=1
   facs::Array{Array{Float64,1},1}=Array(Array{Float64,1},length(exps))
   for exp in exps
     symsLoc::Set{String}=Set{String}()
     fac=analysis!(exp,syms,symsLoc)
-    #nonlinear or all
-    if all || length(fac)==0
-      push!(nolinearFunctions, exprTofunction(exp,symsLoc))
-      push!(nolinearArgs, symsLoc)
-    end
+    push!(nolinearArgs, symsLoc)
     #linear equation
     if length(fac) != 0
       facs[i]=fac
       i+=1
+    else #nonlinear equations
+      push!(nonlinearExpIndx,j)
     end
+    j+=1
   end
   vals::Array{Float64,2}=zeros(i-1,length(syms))
   for j=1:i-1 ; vals[j,1:length(facs[j])]=facs[j]; end
-  return  circshift(vals,(0,-1)) , circshift(syms,-1) , nolinearFunctions , nolinearArgs
+  return  circshift(vals,(0,-1)) , circshift(syms,-1) , nonlinearExpIndx , nolinearArgs
 end
 analysis!(num::Number,syms::Array{String,1},symsLoc::Set{String})=[num]
 analysis!(sym::Symbol,syms::Array{String,1},symsLoc::Set{String})=analysis!(string(sym),syms,symsLoc)

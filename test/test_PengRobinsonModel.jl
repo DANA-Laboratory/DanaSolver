@@ -27,11 +27,7 @@ end
 function testMoreThanOneNonLinear()
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
-<<<<<<< HEAD
   for k in [1:1]
-=======
-  for k in [7:9]
->>>>>>> 51070b8a2374541b9ce67b15a185185c22b996d6
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinson()
     Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 

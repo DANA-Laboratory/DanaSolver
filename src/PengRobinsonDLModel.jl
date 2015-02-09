@@ -22,6 +22,7 @@ module PengRobinsonDLModel
         new(
           constant(Dict{Symbol,Any}(:Default=>pi)), 
           constant(Dict{Symbol,Any}(:Brief=>"general gas constatnt",:Default=>R,:Unit=>"J/Kmol/Kelvin")),
+          constant(Dict{Symbol,Any}(:Brief=>"critical compressiblity for pr",:Default=>0.31115542517055555)),
           "", 
           #parameters
           coefficient(Dict{Symbol,Any}(:Brief=>"critical compressibility",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
@@ -61,7 +62,7 @@ module PengRobinsonDLModel
             :(Z=Pr*vr*Zc/Tr),
             :(A=(ar*alpha)*Pr*Zc^2/Tr^2),
             :(alpha=(1+k*(1-sqrt(Tr)))^2),
-            :(br=0.077796/Zc), #REF[3]
+            :(br=0.077796/Zc),#br=b/vc #REF[3]
             :(B=br*Zc*Pr/Tr),
             :(beta=B-1),
             :(gama=A-3*B^2-2*B),
@@ -69,8 +70,8 @@ module PengRobinsonDLModel
             :(q=(beta*beta-3*gama)/9),
             :(r=(2*beta^3-9*beta*gama+27*delta)/54),
             #0.457235/0.077796/2/sqrt(2)=2.0779601078193677~2.07796
-            :(s_Dep=2.07796*k*((1+k)/sqrt(Tr)-k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr))-log(Z-B)),
-            :(h_Dep=1-Z+(2.07796*sqrt(alpha)*(1+k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))),
+            :(s_Dep=2.0779601078193677*k*((1+k)/sqrt(Tr)-k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr))-log(Z-B)),
+            :(h_Dep=1-Z+(2.0779601078193677*sqrt(alpha)*(1+k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))),
             :(g_Dep=1-Z+(alpha*ar*Zc*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))/(sqrt(2)*br*Tr)+log(((-br+vr)^Zc*Z)/vr)),
             :(ar=0.457235/Zc^2), #REF[3]
             :(o=cbrt((r^2-q^3)^0.5+abs(r))),
@@ -87,9 +88,9 @@ module PengRobinsonDLModel
       #consts
       pi::constant
       R::constant
+      Zc::constant
       name::String
       #parameters
-      Zc::coefficient
       Tc::temperature
       Pc::pressure
       k::coefficient

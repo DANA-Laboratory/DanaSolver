@@ -15,6 +15,7 @@ forButane()
 CompPolyVS_Hyper()
 forAcetone()
 forCarbonmonoxide()
-=#
 include ("test_PengRobinsonDLModel.jl")
 testMoreThanOneNonLinear()
+=#
+include ("test_Analysis.jl")

@@ -27,15 +27,14 @@ end
 function testMoreThanOneNonLinear()
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
-  for k in [1:1]
+  for k in [1:3]
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinsonDL()
-    Tc,Pc,af,Zc=getvalueforname("Criticals","Acetaldehyde") 
+    Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
     setfield!(PR,:Tc,Tc)
     setfield!(PR,:Pc,Pc)
     setfield!(PR,:af,af)
-    setfield!(PR,:Zc,Zc)
-    h_Dep,s_Dep,Pr,Tr,vr=[(NaN,NaN,1.0,1.0,NaN),(NaN,NaN,NaN,1.0,0.21722233067387567),(NaN,NaN,1.0,NaN,0.21722233067387567),(1.1096883953196783e7,NaN,1.0,NaN,NaN),(1.1096883953196783e7,NaN,NaN,1.0,NaN),(1.1096883953196783e7,NaN,NaN,NaN,0.21722233067387567),(NaN,20135.0,1.0,NaN,NaN),(NaN,20135.0,NaN,1.0,NaN),(NaN,20135.0,NaN,NaN,0.21722233067387567)][k]
+    h_Dep,s_Dep,Pr,Tr,vr=[(NaN,NaN,1.0,1.0,NaN),(NaN,NaN,NaN,1.0,1.0),(NaN,NaN,1.0,NaN,1.0),(1.1096883953196783e7,NaN,1.0,NaN,NaN),(1.1096883953196783e7,NaN,NaN,1.0,NaN),(1.1096883953196783e7,NaN,NaN,NaN,0.21722233067387567),(NaN,20135.0,1.0,NaN,NaN),(NaN,20135.0,NaN,1.0,NaN),(NaN,20135.0,NaN,NaN,0.21722233067387567)][k]
     setfield!(PR,:h_Dep,h_Dep)
     setfield!(PR,:s_Dep,s_Dep)
     setfield!(PR,:Pr,Pr)
@@ -101,12 +100,14 @@ function testMoreThanOneNonLinear()
         #fail to fined non-linear equations with only one unknown 
         somethingUpdated=false
         i=2
+        println(nonliVars)
         while (i<=numberOfEquations && !somethingUpdated)
           println ("try system of ",i," equations")
           eqIndexes=getAPSOE(1,numberOfEquations,i)
           for eqIndex in eqIndexes
             varGroup=getindex(nonliVars,eqIndex)
             allVars=union(varGroup...)
+            i==2 && (println (varGroup,' ',length(allVars),' ',eqIndex))
             if length(allVars) == i
               eqGroup=getindex(nonliFuns,eqIndex)
               println("eqGroup=",eqIndex," for vars:",allVars)

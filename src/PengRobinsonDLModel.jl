@@ -25,7 +25,6 @@ module PengRobinsonDLModel
           constant(Dict{Symbol,Any}(:Brief=>"critical compressiblity for pr",:Default=>0.31115542517055555)),
           "", 
           #parameters
-          coefficient(Dict{Symbol,Any}(:Brief=>"critical compressibility",:Lower=>eps(Float64),:Upper=>1.0,:Default=>0.8)),
           temperature(Dict{Symbol,Any}(:Brief=>"critical temperature")), 
           pressure(Dict{Symbol,Any}(:Brief=>"critical pressure")),
           coefficient(),
@@ -72,7 +71,7 @@ module PengRobinsonDLModel
             #0.457235/0.077796/2/sqrt(2)=2.0779601078193677~2.07796
             :(s_Dep=2.0779601078193677*k*((1+k)/sqrt(Tr)-k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr))-log(Z-B)),
             :(h_Dep=1-Z+(2.0779601078193677*sqrt(alpha)*(1+k)*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))),
-            :(g_Dep=1-Z+(alpha*ar*Zc*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))/(sqrt(2)*br*Tr)+log(((-br+vr)^Zc*Z)/vr)),
+            :(g_Dep=1-Z+(alpha*ar*Zc*log(((1+sqrt(2))*br+vr)/((1-sqrt(2))*br+vr)))/(2*sqrt(2)*br*Tr)+log(((-br+vr)*Z)/vr)),
             :(ar=0.457235/Zc^2), #REF[3]
             :(o=cbrt((r^2-q^3)^0.5+abs(r))),
             :(Z=-sign(r)*(o+q/o)-beta/3),
@@ -80,8 +79,8 @@ module PengRobinsonDLModel
             :(k=0.379642+1.48503*af-0.164423*af^2+0.016666*af^3) #REF[4] 2.88
           ],
           Array(Expr,0),
-          [:pi,:R,:name],
-          [:Zc,:Tc,:Pc,:k,:beta,:gama,:alpha,:A,:B,:br,:delta,:q,:r,:teta,:af,:Z1,:Z2,:Z3,:Z,:o,:ar],
+          [:pi,:R,:Zc,:name],
+          [:Tc,:Pc,:k,:beta,:gama,:alpha,:A,:B,:br,:delta,:q,:r,:teta,:af,:Z1,:Z2,:Z3,:Z,:o,:ar],
           [:vr,:Tr,:Pr,:h_Dep,:s_Dep,:g_Dep]
         )
       end
@@ -132,9 +131,9 @@ module PengRobinsonDLModel
       this.equationsFlow=this.equations[1:19];
     end
     if get(this.af)>0.49
-      this.equationsFlow=[this.equationsFlow,this.equations[22]]
+      this.equationsFlow=[this.equationsFlow,this.equations[23]]
     else
-      this.equationsFlow=[this.equationsFlow,this.equations[23]]    
+      this.equationsFlow=[this.equationsFlow,this.equations[22]]    
     end
 
     if this.Z.unset && !(this.Z1.unset) && !(this.Z2.unset) && !(this.Z3.unset)

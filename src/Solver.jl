@@ -11,7 +11,7 @@ module Solver
   include ("Calls.jl")  
 
   #convert expr to function of symsLoc --moves from analysis
-  function exprTofunction(ex::Expr,symsLoc::Set{String})
+  function exprTofunction(ex::Expr,symsLoc::Set{ASCIIString})
     ret::Expr=:(()->())
     ret.args[2].args[2]=ex
     for s in symsLoc
@@ -54,26 +54,37 @@ module Solver
     fullDetermined=false
     noliTrys=0
     nonlTrys=0
+    df_gus=1.0
+    df_br=[0.0,2.0e10]
     while (somethingUpdated && !fullDetermined)
       somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys=slstsubnfd!(danamodel)
-      #TODO
-      #find a system to solve
-      systemindx,systemargs=findsystem(args)
-      #after a linear solution and before nonlisolution replace parameters
       noliTrys+=noTrys
-      if !fullDetermined
-        somethingUpdated,fullDetermined,noTrys=snleoovobo!(danamodel,nonliFuns,nonliArgs)
-        nonlTrys+=noTrys
+      if(!fullDetermined)
+        #find a system to solve
+        varIndex,allVars,eqIndex=Solver.findsystem(args)
+        #TODO after a linear solution and before nonlisolution replace parameters
+        if length(eqIndex)==1
+          fun=Solver.exprTofunction(equations[eqIndex[1]],Set(allVars[varIndex[1]]))
+          result,attempt=callfzero(fun,df_gus,df_br)
+          Solver.setfield!(danamodel,allVars[varIndex[1]][1],result)
+          setEquationFlow(danamodel)
+          somethingUpdated=true
+          nonlTrys+=1
+        else
+          somethingUpdated=false
+        end
       end
     end
-    return somethingUpdated,fullDetermined,noliTrys,nonlTrys,nonliFuns,nonliArgs
+    return somethingUpdated,fullDetermined,noliTrys,nonlTrys,nonliFuns,args
   end
   
   #main loop
   function solve!(danamodel::DanaModel)
-    somthingUpdated=true
+    somethingUpdated=true
     fullDetermined=false
-    while (somthingUpdated && !fullDetermined)
+    nonlTrys=0
+    noliTrys=0
+    while (somethingUpdated && !fullDetermined)
       somethingUpdated,fullDetermined,noliTrys,nonlTrys,nonliFuns,nonliArgs=sliponl!(danamodel)
       if !fullDetermined
         #somethingUpdated,fullDetermined=ssonle!(danamodel,nonliFuns,nonliArgs)
@@ -124,6 +135,7 @@ module Solver
   end
   
   # Solve Linear System Til Something Updated But Not Full Determined
+  # setEquationFlow -> loop(replace->symplify->analysis->update)
   function slstsubnfd!(danamodel::DanaModel)
     args::Array{Set{String},1}=Array(Set{String},0)
     nonliExprIndx::Array{Int,1}=Array(Int,0)
@@ -131,36 +143,14 @@ module Solver
     noTrys=0
     somethingUpdated=true
     fullDetermined=false
+    setEquationFlow(danamodel)   
     while (somethingUpdated && !fullDetermined)
       noTrys+=1
       rVls,vars,nonliExprIndx,args,equations=solvelinear(danamodel)
-      println(rVls)
-      println(vars)
       somethingUpdated,fullDetermined=update!(danamodel,rVls,vars)
       somethingUpdated && setEquationFlow(danamodel)
     end
     return somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys
-  end
-
-  # Solve NonLinear Equations of One Variable One By One
-  function snleoovobo!(danamodel::DanaModel,nonliFuns::Array{Function,1}=Array(Function,0),nonliArgs::Array{Set{String},1}=Array(Set{String},0))
-    i=1
-    noTrys=0
-    somethingUpdated=false
-    fullDetermined=true
-    while (i<=length(nonliFuns))
-      if length(nonliArgs[i])==1
-        noTrys+=1
-        result=fzero(nonliFuns[i],[0,typemax(Int64)])
-        setfield!(danamodel,[nonliArgs[i]...][1],result)
-        setEquationFlow(danamodel)
-        somethingUpdated=true
-      else
-        fullDetermined=false
-      end
-      i=i+1
-    end
-    return somethingUpdated,fullDetermined,noTrys
   end
 
   #solve equations of a model
@@ -187,10 +177,10 @@ module Solver
       end
     end
     #equations=vals*vars (linear equations)
-    vals,vars,nolinearExprIndx,nolinearArgs=analysis(sequations)
+    vals,vars,nolinearExprIndx,args=analysis(sequations)
     #reduced row echelon form
     rreModel=rref(vals)
-    return rreModel,vars,nolinearExprIndx,nolinearArgs,sequations
+    return rreModel,vars,nolinearExprIndx,args,sequations
   end
   function rref(U::Array{Float64,2})		
     nr, nc = size(U)		
@@ -233,9 +223,9 @@ module Solver
       eqIndexes=getapsoe(1,numberOfEquations,noe)
       for eqIndex in eqIndexes
         varGroup=getindex(args,eqIndex)
-        allVars=union(varGroup...)
+        allVars=[union(varGroup...)...]
         if length(allVars) == noe
-          varIndex=map(x->indexin([x...],[allVars...]),varGroup)
+          varIndex=map(x->indexin([x...],allVars),varGroup)
           return varIndex,allVars,eqIndex
         end
       end

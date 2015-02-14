@@ -1,109 +1,115 @@
-function testforidealgasmodelwithcp()
+function solvelinearidealgas()
+  println("**** solve linear ideal gas ****")
+  println("****** 1-step by step ******")
   DNIdel=DANAIdealGasEos()
   DNIdel.P=12.0
   DNIdel.T=120.0
-  DNIdel.CASNO="95-63-6" #1,2,4-Trimethylbenzene
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
   DNIdel.usePolynomialEstimationOfCp=true
-  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   setEquationFlow(DNIdel)
   a=Solver.replace(DNIdel)
-  println(a[5])
   a=map(Calculus.simplify,a)
   vals,vars=Solver.analysis(a)
-  println(a)
-  println(vals)
-  println(vars)
   rVls=Solver.rref(vals)
-  DNIdel.v=-1*last(rVls[1,:])
-  DNIdel.Cp=-1*last(rVls[2,:])
-  println(rVls)
-  println(vars)
-end
-function testupdate()
+  @test_approx_eq 83144.621 -1*last(rVls[1,:])
+  @test_approx_eq 78910.7999999 -1*last(rVls[2,:])
+  println("****** 2-using linear solver ******")
   DNIdel=DANAIdealGasEos()
   DNIdel.P=12.0
   DNIdel.T=120.0
-  DNIdel.CASNO="95-63-6" #1,2,4-Trimethylbenzene
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
   DNIdel.usePolynomialEstimationOfCp=true
-  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   setEquationFlow(DNIdel)
   rVls,vars=Solver.solvelinear(DNIdel)
   Solver.update!(DNIdel,rVls,vars)
   a=Solver.replace(DNIdel)
-  println(map(eval,a))
-end
-function testidealgas()
-  ######Temprature is undef#######
+  @test zeros(8) == (map(eval,a))
+  println("****** 3-using slstsubnfd! ******")
   DNIdel=DANAIdealGasEos()
-  DNIdel.P=2000.0
-  DNIdel.v=4000.0
-  DNIdel.CASNO="95-63-6" #1,2,4-Trimethylbenzene
+  DNIdel.P=12.0
+  DNIdel.T=120.0
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
   DNIdel.usePolynomialEstimationOfCp=true
-  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
-  setEquationFlow(DNIdel)
-  somethingUpdated,fullDetermined=Solver.slstsubnfd!(DNIdel)
-  dump(DNIdel)
-  a=Solver.replace(DNIdel)
-  println(a)
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
+  somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys=Solver.slstsubnfd!(DNIdel)
+  @test somethingUpdated == true
+  @test fullDetermined == true
+  @test nonliExprIndx == []
+  @test length(args) == 8 
+  @test length(equations) == 8 
+  println("solution done by $noTrys trys")
+  @test_approx_eq 83144.621 DNIdel.v
+  @test_approx_eq 78910.7999999 DNIdel.Cp
+  println("****** 4-using solve ******")
+  DNIdel=DANAIdealGasEos()
+  DNIdel.P=12.0
+  DNIdel.T=120.0
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
+  DNIdel.usePolynomialEstimationOfCp=true
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
+  somethingUpdated,fullDetermined,noliTrys,nonlTrys=solve!(DNIdel)
+  @test somethingUpdated == true
+  @test fullDetermined == true
+  @test noliTrys == 1
+  @test nonlTrys == 0
+  @test_approx_eq 83144.621 DNIdel.v
+  @test_approx_eq 78910.7999999 DNIdel.Cp
 end
-function testidealgasfornonlinearsolver()
+function solvenonlinearidealgas()
+  println("**** solve nonlinear ideal gas ****")
+  println("****** 1-using fzero ******")
   ######Temprature is undef#######
   DNIdel=DANAIdealGasEos()
   DNIdel.P=2000.0
   DNIdel.Cp=629657.0
-  DNIdel.CASNO="95-63-6"
+  DNIdel.name="1,2,4-Trimethylbenzene" #"95-63-6"
   DNIdel.usePolynomialEstimationOfCp=true
-  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
-  setEquationFlow(DNIdel)
-  somethingUpdated=true
-  fullDetermined=false
-  while (somethingUpdated && !fullDetermined)
-    rVls,vars=Solver.solvelinear(DNIdel)
-    println("************one solution done************")
-    somethingUpdated,fullDetermined=Solver.update!(DNIdel,rVls,vars)
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
+  somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys=Solver.slstsubnfd!(DNIdel)
+  @test somethingUpdated == false
+  @test fullDetermined == false
+  println("linear solution done by $noTrys trys")
+  println("model has ",length(nonliExprIndx)," nolinear equations->")
+  println(getindex(equations,nonliExprIndx))
+  varIndex,allVars,eqIndex=Solver.findsystem(args)
+  println(varIndex,allVars,eqIndex)
+  if length(eqIndex)==1
+    fun=Solver.exprTofunction(equations[eqIndex[1]],Set(allVars[varIndex[1]]))
+    result=Roots.fzero(fun,[0,typemax(Int64)])
+    @test_approx_eq result 962.1783117595058 
+    Solver.setfield!(DNIdel,allVars[varIndex[1]][1],result)
   end
-  dump(DNIdel)
-end
-function testidealgasfornonlinearsolver2()
-  ######Temprature is undef###using nolinear solver for only an equation####
+  @test_approx_eq DNIdel.T 962.1783117595058
+  println("****** 2-using sliponl! ******")
   DNIdel=DANAIdealGasEos()
   DNIdel.P=2000.0
   DNIdel.Cp=629657.0
-  DNIdel.CASNO="95-63-6"
+  DNIdel.name="1,2,4-Trimethylbenzene" #"95-63-6"
   DNIdel.usePolynomialEstimationOfCp=true
-  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
-  setEquationFlow(DNIdel)
-  somethingUpdated=true
-  fullDetermined=false
-  nonliVars::Array{Set{String},1}=Array(Set{String},0)
-  nonliFuns::Array{Function,1}=Array(Function,0)
-  while (somethingUpdated && !fullDetermined)
-    while (somethingUpdated && !fullDetermined)
-      rVls,vars,nonliFuns,nonliVars=Solver.solvelinear(DNIdel)
-      println("************one linear solution done************")
-      somethingUpdated,fullDetermined=Solver.update!(DNIdel,rVls,vars)
-    end
-    println("fullDetermined=",fullDetermined)
-    if !fullDetermined
-      i=1
-      fullDetermined=true
-      while (i<=length(nonliFuns))
-        if length(nonliVars[i])==1
-          result=Roots.fzero(nonliFuns[i],[0,typemax(Int64)])
-          Solver.setfield!(DNIdel,[nonliVars[i]...][1],result)
-          println("************one nonlinear solution done************")
-          somethingUpdated=true
-        else
-          fullDetermined=false
-        end 
-        i=i+1
-      end
-    end
-    println("fullDetermined=",fullDetermined)
-  end
-  println("somethingUpdated=",somethingUpdated)
-  println("fullDetermined=",fullDetermined)
-  dump(DNIdel)
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
+  somethingUpdated,fullDetermined,noliTrys,nonlTrys=Solver.sliponl!(DNIdel)
+  @test somethingUpdated == true
+  @test fullDetermined == true
+  @test_approx_eq DNIdel.T 962.1783117595058
+  @test_approx_eq DNIdel.ICpDT 2.7479202136168545e8 
+  @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692 
+  println ("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
+  println("****** 3-using solve! ******")
+  DNIdel=DANAIdealGasEos()
+  DNIdel.P=2000.0
+  DNIdel.Cp=629657.0
+  DNIdel.name="1,2,4-Trimethylbenzene" #"95-63-6"
+  DNIdel.usePolynomialEstimationOfCp=true
+  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
+  somethingUpdated,fullDetermined,noliTrys,nonlTrys=solve!(DNIdel)
+  @test somethingUpdated == true
+  @test fullDetermined == true
+  @test_approx_eq DNIdel.T 962.1783117595058
+  @test_approx_eq DNIdel.ICpDT 2.7479202136168545e8 
+  @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692 
+  println ("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
 end
 function testsolve()
   DNIdel=DANAIdealGasEos()
@@ -117,9 +123,15 @@ function testsolve()
   println("somethingUpdate=",somethingUpdated," fullDetermined=",fullDetermined," noliTrys=",noliTrys," nonlTrys=",nonlTrys)
 end
 function testfindsystem()
+  println("**** find system to solve ****")
   args=[Set(String["c","d","c"]),Set(String["b","c","i"]),Set(String["d","g","h"]),Set(String["d","c","i"]),Set(String["a","d","k"]),Set(String["b","a","c"]),Set(String["a","b","c"]),Set(String["a","d"]),Set(String["d","e"]),Set(String["e","f"]),Set(String["f","b","e"]),Set(String["e","k"])]
-  a,b,c=Solver.findsystem(args)
-  println(a)
-  println(b)
-  println(c)
+  println("****** test for a system of ",length(args)," equations-> ******")
+  println(args)
+  varindex,allvars,eqindex=Solver.findsystem(args)
+  i=1
+  println("equation number    |    in tems of ")
+  for ai in varindex
+    println("       ",eqindex[i],"           | ",allvars[ai])
+    i+=1
+  end
 end

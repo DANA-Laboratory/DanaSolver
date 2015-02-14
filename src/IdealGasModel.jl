@@ -25,7 +25,7 @@ module IdealGasModel
       end
       #paremeters
       R::Float64
-      CASNO::String
+      name::String
       usePolynomialEstimationOfCp::Bool
       C1::Float64
       C2::Float64
@@ -53,6 +53,5 @@ module IdealGasModel
     else
       this.equationsFlow=[this.equations[1],this.equations[3],this.equations[5],this.equations[6],this.equations[8],this.equations[9],this.equations[10],this.equations[11]]
     end
-    println(this.equationsFlow)
   end
 end

@@ -111,17 +111,6 @@ function solvenonlinearidealgas()
   @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692 
   println ("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
 end
-function testsolve()
-  DNIdel=DANAIdealGasEos()
-  DNIdel.P=2000.0
-  DNIdel.Cp=629657.0
-  DNIdel.CASNO="95-63-6"
-  DNIdel.usePolynomialEstimationOfCp=true
-  DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly","1,2,4-Trimethylbenzene")
-  setEquationFlow(DNIdel)
-  somethingUpdated,fullDetermined,noliTrys,nonlTrys=Solver.sliponl!(DNIdel)
-  println("somethingUpdate=",somethingUpdated," fullDetermined=",fullDetermined," noliTrys=",noliTrys," nonlTrys=",nonlTrys)
-end
 function testfindsystem()
   println("**** find system to solve ****")
   args=[Set(String["c","d","c"]),Set(String["b","c","i"]),Set(String["d","g","h"]),Set(String["d","c","i"]),Set(String["a","d","k"]),Set(String["b","a","c"]),Set(String["a","b","c"]),Set(String["a","d"]),Set(String["d","e"]),Set(String["e","f"]),Set(String["f","b","e"]),Set(String["e","k"])]

@@ -9,7 +9,7 @@ module Solver
   include ("Analysis.jl")
   include ("Update.jl")
   include ("Calls.jl")  
-
+  
   #convert expr to function of symsLoc --moves from analysis
   function exprTofunction(ex::Expr,symsLoc::Set{ASCIIString})
     ret::Expr=:(()->())

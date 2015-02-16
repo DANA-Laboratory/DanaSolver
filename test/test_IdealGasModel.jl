@@ -1,12 +1,13 @@
 # REF[2] Engineering and Chemical Thermodynamics By Milo D. Koretsky
 # REF[2] Example 5.4
 function forButane()
+  println("**** test for butane ****")
   dh=0.0;h1=0.0;
   for T in [80+273.15,120+273.15]
     DNIdel=DANAIdealGasEos()
-    DNIdel.CASNO=getvalueforname("Profile","Butane")[2]
+    DNIdel.name="Butane" #CASNO = getvalueforname("Profile","Butane")[2]
     DNIdel.usePolynomialEstimationOfCp=false
-    DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpHyper","Butane")
+    DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpHyper",DNIdel.name)
     DNIdel.T=T
     setEquationFlow(DNIdel)
     somethingUpdated,fullDetermined=Solver.slstsubnfd!(DNIdel)
@@ -16,6 +17,7 @@ function forButane()
   println("result is=",dh/1000,"j/mol ref[2] page285:",4696)
 end
 function CompPolyVS_Hyper()
+  println("**** butane CompPolyVS_Hyper ****")
   h_poly::Array{Float64,1}=Array(Float64,0)
   h_hyper::Array{Float64,1}=Array(Float64,0)
   for T in [298.15,328.84,350,400,450,500,550]
@@ -23,8 +25,8 @@ function CompPolyVS_Hyper()
     DNIdelHyper=DANAIdealGasEos()
 	  DNIdelPoly.T=T
 		DNIdelHyper.T=T
-    DNIdelPoly.CASNO=getvalueforname("Profile","Butane")[2]
-    DNIdelHyper.CASNO=getvalueforname("Profile","Butane")[2]
+    DNIdelPoly.name="Butane"
+    DNIdelHyper.name="Butane"
     DNIdelPoly.usePolynomialEstimationOfCp=true
     DNIdelHyper.usePolynomialEstimationOfCp=false
     DNIdelPoly.C1,DNIdelPoly.C2,DNIdelPoly.C3,DNIdelPoly.C4,DNIdelPoly.C5 = getvalueforname("CpPoly","Butane")
@@ -36,19 +38,21 @@ function CompPolyVS_Hyper()
     push!(h_poly,DNIdelPoly.h)
     push!(h_hyper,DNIdelHyper.h)
   end
-  println(h_poly-h_poly[1])
-  println(h_hyper-h_hyper[1])
+  println("poly ->",h_poly-h_poly[1])
+  println("hyper->",h_hyper-h_hyper[1])
 end
-function forAcetone()
+function forwater()
+  println("**** for water ****")
   i=1;
   h_Dep::Array{Float64,1}=Array(Float64,0)
   cp_Dep::Array{Float64,1}=Array(Float64,0)
-	for T in [328.84,350,400,450,500,550]
+	tem = [298.15,200,240,260,280,300,320,340,360,380,400,420,440,460,480,500,550,600,650,700,750,800,850,900,950,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700,2800,2900,3000,3500,4000,4500,5000]
+  for T in tem
 	  DNIdel=DANAIdealGasEos()
 		DNIdel.T=T
-	  DNIdel.CASNO=getvalueforname("Profile","Acetone")[2] #"67-64-1"
+	  DNIdel.name="Water" #7732-18-5
 		DNIdel.usePolynomialEstimationOfCp=false
-		DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpHyper","Acetone")
+		DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpHyper",DNIdel.name)
 		setEquationFlow(DNIdel)
     somethingUpdated,fullDetermined=Solver.slstsubnfd!(DNIdel)
     push!(h_Dep,DNIdel.h)
@@ -56,14 +60,21 @@ function forAcetone()
 		i+=1;
 	end
   # println(" Cp=",cp_Dep);
-  return (h_Dep)
+  ref_h=[0,-3282,-1948,-1279,-609,62,735,1410,2088,2769,3452,4139,4829,5523,6222,6925,8699,10501,12321,14192,16082,18002,19954,21938,23954,26000,30191,34506,38942,43493,48151,52908,57758,62693,67706,72790,77941,83153,88421,93741,99108,104520,109973,115464,120990,126549,154768,183552,212764,242313]
+  DhDep=(h_Dep-h_Dep[1])/1000
+  i=1
+  for t in tem
+    println ("at $t -> calculated enthalpy=",DhDep[i]," Ref[1] Table2-180=",ref_h[i]," %diff=",(DhDep[i]-ref_h[i])/ref_h[i]*100)
+    i+=1
+  end
 end
 function forCarbonmonoxide()
+  println ("****  for Carbonmonoxide ****")
   ###### verification: check monoxide Enthalpies with Ref[1]:Table(2-180) #######
   DNIdel=DANAIdealGasEos()
   DNIdel.T=298.15
   # monoxide
-  DNIdel.CASNO=getvalueforname("Profile","Carbon monoxide")[2] #"630-08-0"
+  DNIdel.name="Carbon monoxide" #"630-08-0"
   DNIdel.usePolynomialEstimationOfCp=false
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpHyper","Carbon monoxide")
   setEquationFlow(DNIdel)
@@ -76,12 +87,12 @@ function forCarbonmonoxide()
 		DNIdel=DANAIdealGasEos()
 		DNIdel.T=T
 		# monoxide
-    DNIdel.CASNO=getvalueforname("Profile","Carbon monoxide")[2] #"630-08-0"
+    DNIdel.name="Carbon monoxide"#"630-08-0"
 		DNIdel.usePolynomialEstimationOfCp=false
 		DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpHyper","Carbon monoxide")
 		setEquationFlow(DNIdel)
     somethingUpdated,fullDetermined=Solver.slstsubnfd!(DNIdel)
-		println("T=",T," Dh=",(DNIdel.h-hst)/1000," ref value=",refDelta_h[i]," diff=",(DNIdel.h-hst)/1000-refDelta_h[i]);
+		println("T=",T," Dh=",(DNIdel.h-hst)/1000," ref value=",refDelta_h[i]," %diff=",((DNIdel.h-hst)/1000-refDelta_h[i])/refDelta_h[i]*100);
 		i+=1;
 	end
 end

@@ -20,6 +20,20 @@ function analysissystemofequations()
     println(ex,"-->",facs[2:end],'*',re[2],"=0")
   end
 end
+function testanalysis()
+  equation=[:(teta - acos(r / q ^ 1.5)),:(Z1 - (-2 * sqrt(q) * cos(teta / 3) - beta / 3)),:(Z2 - (-2 * sqrt(q) * cos((6.283185307179586 + teta) / 3) - beta / 3)),:(Z3 - (-2 * sqrt(q) * cos((12.566370614359172 + teta) / 3) - beta / 3)),:(1.0 - ((Tr / 0.7499770413536668) / 0.31115542517055556 - (4.722638593459387alpha) / 1.4375344374424004)),:(Z - 0.31115542517055556 / Tr),:(A - (0.0968176986130692 * (4.722638593459387alpha)) / Tr ^ 2),:(alpha - (1 + 0.8001649902192 * (1 - sqrt(Tr))) ^ 2),:(B - 0.077796 / Tr),:(beta - (B - 1)),:(gama - ((A - 3 * B ^ 2) - 2B)),:(delta - ((B ^ 3 + B ^ 2) - A * B)),:(q - (beta * beta - 3gama) / 9),:(r - ((2 * beta ^ 3 - 9 * beta * gama) + 27delta) / 54),:(s_Dep - (0.9670056591193716 * (1.8001649902192 / sqrt(Tr) - 0.8001649902192) - log(Z - B))),:(h_Dep - ((1 - Z) + 2.1755134930530544 * sqrt(alpha))),:(g_Dep - ((1 - Z) + (0.8546225611932206alpha) / (0.7071717180445836Tr) + log(0.7499770413536668Z)))]
+
+  println(Solver.analysis([:(x^2)]))
+  println(Solver.analysis([:(1/x^2)]))
+  println(Solver.analysis([:(x/2)]))
+  println(Solver.analysis([:(1*x^2)]))
+  return
+  for eq in equation
+    println(eq)
+    re=Solver.analysis([eq])
+    println(re[end])
+  end
+end
 function allsyms()
   println("**** get all syms in expr ****")
   syms=Set{String}()

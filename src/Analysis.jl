@@ -84,6 +84,8 @@ function analysis!(exp::Expr,syms::Array{String,1},symsLoc::Set{String},symsNonl
         end
         return mult,allislinear
       elseif exp.args[1] == :/
+        println(exp.args)
+        println(facAr)
         if  isconstantfactor(facAr[2])
           return (facAr[1]/(facAr[2][1])),allislinear
         else

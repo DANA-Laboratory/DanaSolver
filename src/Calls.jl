@@ -1,15 +1,22 @@
-#find zero of y->g(X,y) and return f(X,Y)
+const MaxAttempt=100
 initial=NaN 
-function callffzero(x,g::Function,gde,gbracket,f::Function)
+function callffzero(f::Function,finitial::Float64,fbracket::Vector{Float64},g::Function,ginitial::Float64,gbracket::Vector{Float64})
+  global initial
+  initial=NaN
+  re=callfzero(x->getfxy0whengzeroatx(f,g,x,ginitial,gbracket),finitial,fbracket,200)
+  return re,initial
+end
+#find y0 when y->g(x,y)==0 and return f(x,y0)
+function getfxy0whengzeroatx(f::Function,g::Function,x::Float64,ginitial,gbracket)
   attempt=0
   global initial
-  isnan(initial) && (initial=gde)
-  while attempt<5
+  isnan(initial) && (initial=ginitial)
+  while attempt<MaxAttempt
     try
-      y=Roots.fzero(y->g([x,y]),initial,order=0)
-      #println("find zero @(x=$x,y=$y) initial=$initial f([x,y])=",f([x,y]))
-      initial=y
-      return f([x,y])
+      y0=Roots.fzero(y->g([x,y]),initial,order=0)
+      #println("find zero @(x=$x,y=$y0) initial=$initial f([x,y])=",f([x,y0]))
+      initial=y0
+      return f([x,y0])
     catch er
       if er == DomainError()
         initial=rand()*(gbracket[2]-gbracket[1])+gbracket[1]
@@ -22,7 +29,7 @@ function callffzero(x,g::Function,gde,gbracket,f::Function)
   #println ("in callffzero no answer after $attempt attempts")
   throw(DomainError)
 end
-function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=300,ord=0)
+function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=MaxAttempt,ord=0)
   result=NaN
   attempt=0
   firstLoopDone=false

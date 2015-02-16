@@ -5,26 +5,13 @@
 #generate indexes for all possible system of _noe equations[APSOE]. 
 #where equations is a selection from _minIndex to _maxIndex of a list of equations
 using NLopt
-function getAPSOE(_minIndex::Int,_maxIndex::Int,_noe::Int)
-  if 1<_noe
-    jj::Vector=Vector[]
-    for k in [_minIndex+1:_maxIndex] 
-      j=getAPSOE(k,_maxIndex,_noe-1)
-      jj=append!(jj,[push!(e,k-1) for e in j])
-    end
-    return jj
-  else 
-    return [[i] for i in _minIndex:_maxIndex]
-  end
-end
-
-#*********************
 function dumpme(var)
-  println("***dump***")
+  println("****** dump ******")
   println("PR.Tc , PR.Pc , PR.af , PR.Zc , PR.h_Dep , PR.s_Dep , PR.g_Dep , PR.Pr , PR.Tr , PR.vr")
   println(get(var.Tc)," , ",get(var.Pc)," , ",get(var.af)," , ",get(var.Zc)," , ",get(var.h_Dep)," ,  ",get(var.s_Dep)," , ",get(var.g_Dep)," , ",get(var.Pr)," , ",get(var.Tr)," , ",get(var.vr))
 end
-function testMoreThanOneNonLinear()
+function testPRDLvriousunknowns()
+  println("**** test RP DL variouns unknowns ****")
   nonliFuns::Array{Function,1}=Array(Function,0)
   nonliVars::Array{Set{String},1}=Array(Set{String},0)
   for k in [1:3]
@@ -42,6 +29,12 @@ function testMoreThanOneNonLinear()
     setfield!(PR,:vr,vr)
     println("----------Solution Starts----------")
     dumpme(PR)
+    somethingUpdated,fullDetermined,noliTrys,nonlTrys = solve!(PR)
+    println("--somethingUpdated=$somethingUpdated,fullDetermined=$fullDetermined,noliTrys=$noliTrys,nonlTrys=$nonlTrys--")
+    dumpme(PR)
+  end
+end
+#=
     somethingUpdated=true
     fullDetermined=false
     while (somethingUpdated && !fullDetermined)
@@ -353,3 +346,4 @@ function testPR()
   #println("real gas dh (claculated)->  ",round(res1-res1[1])[2:end]," (j/mol)")
   #println("reference values->          ",round(ref_h-ref_h[1])[2:end]," (j/mol)")
 end
+=#

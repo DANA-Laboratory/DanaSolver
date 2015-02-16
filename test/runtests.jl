@@ -1,6 +1,8 @@
 using ThermophysicalCalculation
 using Base.Test
 using DanaTypes
+#=
+include ("test_Calls.jl")
 include ("test_Analysis.jl")
 allsyms()
 analysissystemofequations()
@@ -13,8 +15,11 @@ forButane()
 CompPolyVS_Hyper()
 forwater()
 forCarbonmonoxide()
-#=
-include ("test_Calls.jl")
-include ("test_PengRobinsonDLModel.jl")
-testMoreThanOneNonLinear()
 =#
+
+#include ("test_PengRobinsonDLModel.jl")
+#testPRDLvriousunknowns()
+include ("test_Analysis.jl")
+#allsyms()
+#analysissystemofequations()
+testanalysis()

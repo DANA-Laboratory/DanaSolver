@@ -3,12 +3,11 @@ output=false
 @test_approx_eq Solver.callfzero(x->x^3-1,0.0,[0.0,100.0])[1] 1.0
 
 @time r=Solver.callfzero(x->x^2-1,200.0,[0.0,500.0])
-println("attempts=$r")
-@test_approx_eq Solver.callfzero(x->x^2-1,0.0,[0.0,100.0])[1] 1.0
+@test r == (1.0,1)
 
 @time r=Solver.callfzero(x->x^3+log(2.0-x)-1,50.0,[0.0,100.0],1000)
 @test_approx_eq r[1] 1.0
-println("attempts=$r")
+println("solve x^3+log(2.0-x)-1=0 initial=50.0 in[0.0,100] with  attempts=",r[2])
 
 @test_throws ErrorException Solver.callfzero(x->x^2+log(2.0-x)-1,-50.0,[-100.0,-10.0],100)
 
@@ -17,7 +16,7 @@ println("attempts=$r")
 @time r=Solver.callfzero(y->(y)^3+log(y-1),50.0,[0.0,100.0],1000)
 println("(y)^3+log(y-1) ->y=",r)
 
-println("********test opt********")
+println("**** test opt ****")
 f(x,y)=begin
         global output
         output && println("in f $x , $y");
@@ -33,18 +32,17 @@ push!(indG,[1,2],[1,2])
 # cant solve because it sends y>x and log(x-y) fails 
 @test_throws DomainError Solver.callmin([f,g],indG,[0.0,0.0],[100.0,100.0],[10.0,1.0])
 
-println("********test fzero(f(x,fzero(g(x,y)))) instead of opt********")
+println("**** test fzero(f(x,fzero(g(x,y)))) instead of opt ****")
 @time r=Solver.callfzero(x->f(x,Solver.callfzero(y->g(x,y),50.0,[0.0,100.0],1000)[1]),50.0,[0.0,100.0],1000)
 println("use 2 fzeroz ->",r)
 
 gg(vec_x)=g(vec_x...)
 ff(vec_x)=f(vec_x...)
-println("********test ffzero(g,f) instead of opt********")
-initial=NaN
-@time r=Solver.callfzero(x->Solver.callffzero(x,gg,50.0,[0.0,100.0],ff),50.0,[0.0,100.0],10)
+#output=true
+println("**** test ffzero(f,g) instead of opt ****")
+@time r=Solver.callffzero(ff,50.0,[0.0,100.0],gg,50.0,[0.0,100.0])
 println("use ffzero ->",r)
 
-println("********test ffzero(f,g) instead of opt********")
-initial=NaN
-@time r=Solver.callfzero(x->Solver.callffzero(x,ff,50.0,[0.0,1.0],gg),1.0,[0.0,100.0],10)
+println("**** test ffzero(g,f) instead of opt ****")
+@time r=Solver.callffzero(gg,50.0,[0.0,100.0],ff,50.0,[0.0,100.0])
 println("use ffzero ->",r)

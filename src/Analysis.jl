@@ -8,7 +8,6 @@ function analysis(exps::Array{Expr,1})
   push!(syms,"constant")
   i=1
   j=1
-  k=1
   facs::Array{Array{Float64,1},1}=Array(Array{Float64,1},length(exps))
   nonlifacs::Array{Array{Float64,1},1}=Array(Array{Float64,1},length(exps))
   for exp in exps
@@ -23,8 +22,7 @@ function analysis(exps::Array{Expr,1})
       i+=1
     else #nonlinear equations
       push!(nonlinearExpIndx,j)
-      nonlifacs[k]=fac
-      k+=1
+      nonlifacs[j]=fac
     end
     j+=1
   end
@@ -84,9 +82,9 @@ function analysis!(exp::Expr,syms::Array{String,1},symsLoc::Set{String},symsNonl
         end
         return mult,allislinear
       elseif exp.args[1] == :/
-        println(exp.args)
-        println(facAr)
-        if  isconstantfactor(facAr[2])
+        #println(exp.args)
+        #println(facAr)
+        if  isconstantfactor(facAr[2]) && facAr[2][1]!=0.0
           return (facAr[1]/(facAr[2][1])),allislinear
         else
           allsyms!(exp,symsNonlinear)

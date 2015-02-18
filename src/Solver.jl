@@ -1,6 +1,3 @@
-type SolverComposite
-  #TODO
-end
 module Solver 
   using DanaTypes
   using Calculus
@@ -74,11 +71,12 @@ module Solver
           #nonlinear unknowns in system union(symsNonlinearArray[eqIndex]...)
           if length(union(symsNonlinearArray[eqIndex]...))==1
             #this system can simplified to a nonlinear equation of one unknown
-            println(equations)
+            #println(equations)
+            println("eqIndex=",eqIndex)
             for ind in eqIndex
               println(equations[ind])
-              println(nonlifacs[ind])
             end
+            println(nonliExprIndx," ",nonlifacs)
             println("here")
           end
           somethingUpdated=false
@@ -259,5 +257,13 @@ module Solver
     else
       return [[i] for i in minIndex:maxIndex]
     end
+  end
+
+  #solve an expr for var with factor->fac
+  #must be linear in term of var
+  function solveexpr!(expr::Expr,var::Symbol,fac::Float64)
+    replace!(expr,var,0.0)
+    expr=simplify(expr)
+    expr=Expr(:call,:/,:(-1*$expr),fac)
   end
 end

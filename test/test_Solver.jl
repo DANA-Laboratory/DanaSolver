@@ -1,3 +1,8 @@
+function solvelinearexprforvar()
+  println("**** test solve linear expression for var with fac ****")
+  @test Solver.solveexpr!(:(5x+y),:x,5.0) == :(-1y/5)
+  @test Solver.solveexpr!(:(sin(z)*y+5x+y^2+z),:x,5.0) == :(-1(sin(z)*y+y^2+z)/5)
+end
 function solvelinearidealgas()
   println("**** solve linear ideal gas ****")
   println("****** 1-step by step ******")
@@ -76,7 +81,7 @@ function solvenonlinearidealgas()
   varIndex,allVars,eqIndex=Solver.findsystem(args)
   println(varIndex,allVars,eqIndex)
   if length(eqIndex)==1
-    fun=Solver.exprTofunction(equations[eqIndex[1]],Set(allVars[varIndex[1]]))
+    fun=Solver.exprTofunction(equations[eqIndex[1]],allVars[varIndex[1]])
     result=Roots.fzero(fun,[0,typemax(Int64)])
     @test_approx_eq result 962.1783117595058 
     Solver.setfield!(DNIdel,allVars[varIndex[1]][1],result)

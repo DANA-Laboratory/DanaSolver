@@ -3,7 +3,7 @@ initial=NaN
 function callffzero(f::Function,finitial::Float64,fbracket::Vector{Float64},g::Function,ginitial::Float64,gbracket::Vector{Float64})
   global initial
   initial=NaN
-  re=callfzero(x->getfxy0whengzeroatx(f,g,x,ginitial,gbracket),finitial,fbracket,200)
+  re=callfzero(x->getfxy0whengzeroatx(f,g,x,ginitial,gbracket),finitial,fbracket,500)
   return re,initial
 end
 #find y0 when y->g(x,y)==0 and return f(x,y0)

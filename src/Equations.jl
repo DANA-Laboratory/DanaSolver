@@ -1,4 +1,4 @@
-type SystemOfEquations
+type Equations
   eq::Array{Expr,1} #array of equations
   facts::Array{Float64,2} #matrix of factors of linear equations
   terms::Array{String,1} #array of symbols (all term of eqautions)

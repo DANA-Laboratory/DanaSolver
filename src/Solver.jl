@@ -6,6 +6,7 @@ module Solver
   export solve!
   import DanaTypes.setfield!
   include ("Replace.jl")
+  include ("Equations.jl")
   include ("Analysis.jl")
   include ("Update.jl")
   include ("Calls.jl")  
@@ -53,14 +54,16 @@ module Solver
     df_gus=1.0
     df_br=[0.0,2.0e10]
     while (true)
-      somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys,symsNonlinearArray,nonlifacs=slstsubnfd!(danamodel)
+      somethingUpdated,fullDetermined,eqs,noTrys=slstsubnfd!(danamodel)
       noliTrys+=noTrys
       if(!fullDetermined)
         #find a system to solve
+        args=Array(Set{String},0)
+        for ex in eqs.exs; push!(args,ex.termall); end;
         varIndex,allVars,eqIndex=Solver.findsystem(args)
         if length(eqIndex)==1
           unknown=allVars[varIndex[1]]
-          fun=Solver.exprTofunction(equations[eqIndex[1]],unknown)
+          fun=Solver.exprTofunction(eqs.exs[eqIndex[1]].ex,unknown)
           result,attempt=callfzero(fun,getdefault(danamodel,unknown[1]),getbracket(danamodel,unknown[1]))
           Solver.setfield!(danamodel,unknown[1],result)
           setEquationFlow(danamodel)
@@ -74,9 +77,9 @@ module Solver
             #println(equations)
             println("eqIndex=",eqIndex)
             for ind in eqIndex
-              println(equations[ind])
+              println(eqs.exs[ind].ex)
+              println(eqs.exs[ind].termnonli," ",eqs.exs[ind].factliinnonli)
             end
-            println(nonliExprIndx," ",nonlifacs)
             println("here")
           end
           somethingUpdated=false
@@ -153,11 +156,11 @@ module Solver
     setEquationFlow(danamodel)   
     while (true)
       noTrys+=1
-      rVls,vars,nonliExprIndx,args,equations,symsNonlinearArray,nonlifacs=solvelinear(danamodel)
-      somethingUpdated,fullDetermined=update!(danamodel,rVls,vars)
+      rVls,eqs=solvelinear(danamodel)
+      somethingUpdated,fullDetermined=update!(danamodel,rVls,eqs.terms)
       somethingUpdated && setEquationFlow(danamodel)
       if (!somethingUpdated || fullDetermined)
-        return somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys,symsNonlinearArray,nonlifacs
+        return somethingUpdated,fullDetermined,eqs,noTrys
       end
     end
     #return somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys,symsNonlinearArray,nonlifacs
@@ -187,10 +190,11 @@ module Solver
       end
     end
     #equations=vals*vars (linear equations)
-    vals,vars,nolinearExprIndx,args,symsNonlinearArray,nonlifacs=analysis(sequations)
+    eqs=Equations(map(Equation,sequations))
+    analysis(eqs)
     #reduced row echelon form
-    rreModel=rref(vals)
-    return rreModel,vars,nolinearExprIndx,args,sequations,symsNonlinearArray,nonlifacs
+    rreModel=rref(eqs.facts)
+    return rreModel,eqs
   end
   function rref(U::Array{Float64,2})		
     nr, nc = size(U)		

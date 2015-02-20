@@ -44,5 +44,5 @@ println("**** test ffzero(f,g) instead of opt ****")
 println("use ffzero ->",r)
 
 println("**** test ffzero(g,f) instead of opt ****")
-@time r=Solver.callffzero(gg,50.0,[0.0,100.0],ff,50.0,[0.0,100.0])
+@time r=Solver.callffzero(gg,5.0,[0.0,10.0],ff,5.0,[0.0,10.0])
 println("use ffzero ->",r)

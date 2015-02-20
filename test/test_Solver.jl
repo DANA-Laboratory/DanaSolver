@@ -15,7 +15,9 @@ function solvelinearidealgas()
   setEquationFlow(DNIdel)
   a=Solver.replace(DNIdel)
   a=map(Calculus.simplify,a)
-  vals,vars=Solver.analysis(a)
+  eqs=Solver.Equations(map(Solver.Equation,a))
+  Solver.analysis(eqs)
+  vals,vars=eqs.facts,eqs.terms
   rVls=Solver.rref(vals)
   @test_approx_eq 83144.621 -1*last(rVls[1,:])
   @test_approx_eq 78910.7999999 -1*last(rVls[2,:])
@@ -27,8 +29,8 @@ function solvelinearidealgas()
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   setEquationFlow(DNIdel)
-  rVls,vars=Solver.solvelinear(DNIdel)
-  Solver.update!(DNIdel,rVls,vars)
+  rVls,eqs=Solver.solvelinear(DNIdel)
+  Solver.update!(DNIdel,rVls,eqs.terms)
   a=Solver.replace(DNIdel)
   @test zeros(8) == (map(eval,a))
   println("****** 3-using slstsubnfd! ******")
@@ -38,12 +40,12 @@ function solvelinearidealgas()
   DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
-  somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys=Solver.slstsubnfd!(DNIdel)
+  somethingUpdated,fullDetermined,eqs,noTrys=Solver.slstsubnfd!(DNIdel)
   @test somethingUpdated == true
   @test fullDetermined == true
-  @test nonliExprIndx == []
-  @test length(args) == 8 
-  @test length(equations) == 8 
+  @test eqs.indexnonliexs == []
+  @test length(eqs.terms) == 9 
+  @test length(eqs.exs) == 8 
   println("solution done by $noTrys trys")
   @test_approx_eq 83144.621 DNIdel.v
   @test_approx_eq 78910.7999999 DNIdel.Cp
@@ -72,16 +74,18 @@ function solvenonlinearidealgas()
   DNIdel.name="1,2,4-Trimethylbenzene" #"95-63-6"
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
-  somethingUpdated,fullDetermined,nonliExprIndx,args,equations,noTrys=Solver.slstsubnfd!(DNIdel)
+  somethingUpdated,fullDetermined,eqs,noTrys=Solver.slstsubnfd!(DNIdel)
   @test somethingUpdated == false
   @test fullDetermined == false
   println("linear solution done by $noTrys trys")
-  println("model has ",length(nonliExprIndx)," nolinear equations->")
-  println(getindex(equations,nonliExprIndx))
+  println("model has ",length(eqs.indexnonliexs)," nolinear equations->")
+  println(getindex(eqs.exs,eqs.indexnonliexs))
+  args=Array(Set{String},0)
+  for ex in eqs.exs; push!(args,ex.termall); end;
   varIndex,allVars,eqIndex=Solver.findsystem(args)
   println(varIndex,allVars,eqIndex)
   if length(eqIndex)==1
-    fun=Solver.exprTofunction(equations[eqIndex[1]],allVars[varIndex[1]])
+    fun=Solver.exprTofunction(eqs.exs[eqIndex[1]].ex,allVars[varIndex[1]])
     result=Roots.fzero(fun,[0,typemax(Int64)])
     @test_approx_eq result 962.1783117595058 
     Solver.setfield!(DNIdel,allVars[varIndex[1]][1],result)

@@ -1,3 +1,9 @@
+function testwhatif()
+  @test Solver.whatifcombineeqs(Set{String}(),Set{String}(),Set{String}(),Set{String}()) == []
+  @test Solver.whatifcombineeqs(Set{String}(["x","y"]),Set{String}(["z"]),Set{String}(["y"]),Set{String}(["x"])) == [Set{String}(),Set{String}(["z","x"]),Set{String}(),Set{String}(["z","y"])]
+  @test Solver.whatifcombineeqs(Set{String}(["x","y"]),Set{String}(["z"]),Set{String}(["x","y"]),Set{String}(["z"])) == [Set{String}(["y"]),Set{String}(["z"]),Set{String}(["x"]),Set{String}(["z"])]
+  @test Solver.whatifcombineeqs(Set{String}(["x","y"]),Set{String}(["z"]),Set{String}(["z"]),Set{String}(["x"])) == [Set{String}(),Set{String}(["z","y"]),Set{String}(["y"]),Set{String}(["x"])]
+end
 function solvelinearexprforvar()
   println("**** test solve linear expression for var with fac ****")
   @test Solver.solveexpr!(:(5x+y),:x,5.0) == :(-1y/5)
@@ -80,9 +86,7 @@ function solvenonlinearidealgas()
   println("linear solution done by $noTrys trys")
   println("model has ",length(eqs.indexnonliexs)," nolinear equations->")
   println(getindex(eqs.exs,eqs.indexnonliexs))
-  args=Array(Set{String},0)
-  for ex in eqs.exs; push!(args,ex.termall); end;
-  varIndex,allVars,eqIndex=Solver.findsystem(args)
+  varIndex,allVars,eqIndex=Solver.findsystem(eqs)
   println(varIndex,allVars,eqIndex)
   if length(eqIndex)==1
     fun=Solver.exprTofunction(eqs.exs[eqIndex[1]].ex,allVars[varIndex[1]])
@@ -123,10 +127,20 @@ end
 function testfindsystem()
   println("**** find system to solve ****")
   args=[Set(String["c","d","c"]),Set(String["b","c","i"]),Set(String["d","g","h"]),Set(String["d","c","i"]),Set(String["a","d","k"]),Set(String["b","a","c"]),Set(String["a","b","c"]),Set(String["a","d"]),Set(String["d","e"]),Set(String["e","f"]),Set(String["f","b","e"]),Set(String["e","k"])]
+  argsnli=[Set(String["c"]),Set(String["b"]),Set(String["g","h"]),Set(String["d","i"]),Set(String[]),Set(String["a","c"]),Set(String[]),Set(String["d"]),Set(String["e"]),Set(String["e"]),Set(String[]),Set(String["e"])]
   println("****** test for a system of ",length(args)," equations-> ******")
   println(args)
-  varindex,allvars,eqindex=Solver.findsystem(args)
+  eqs=Array(Solver.Equation,12)
+  i=1;
+  while i<=length(args) ; eqs[i]=Solver.Equation(:()); eqs[i].termall=args[i]; eqs[i].termnonli=argsnli[i]; i+=1; end;
+  j=1
+  varindex,allvars,eqindex=false,false,false
+  while varindex==false
+    varindex,allvars,eqindex=Solver.findsystem(Solver.Equations(eqs),j)
+    j+=1
+  end
   i=1
+  println("number of nolinear terms=$j")
   println("equation number    |    in tems of ")
   for ai in varindex
     println("       ",eqindex[i],"           | ",allvars[ai])

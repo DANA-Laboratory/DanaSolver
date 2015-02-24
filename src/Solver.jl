@@ -59,10 +59,14 @@ module Solver
       if(!fullDetermined)
         #find a system to solve
         args=Array(Set{String},0)
-        for ex in eqs.exs; push!(args,ex.termall); end;
-        varIndex,allVars,eqIndex=Solver.findsystem(args)
-        if length(eqIndex)==1
+        #for ex in eqs.exs; push!(args,ex.termall); end;
+        varIndex,allVars,eqIndex=findsystem(eqs,1)
+        if (varIndex!=false)
           unknown=allVars[varIndex[1]]
+          println(unknown)
+          println(eqIndex)
+          println(allVars)
+          println(varIndex)
           fun=Solver.exprTofunction(eqs.exs[eqIndex[1]].ex,unknown)
           result,attempt=callfzero(fun,getdefault(danamodel,unknown[1]),getbracket(danamodel,unknown[1]))
           Solver.setfield!(danamodel,unknown[1],result)
@@ -70,9 +74,9 @@ module Solver
           somethingUpdated=true
           nonlTrys+=1
         else
-          #fails to find a nonlinear equation of one unknown 
-          #nonlinear unknowns in system union(symsNonlinearArray[eqIndex]...)
-          if length(union(symsNonlinearArray[eqIndex]...))==1
+          varIndex,allVars,eqIndex=findsystem(eqs,2)
+          if (varIndex!=false)
+            #fails to find a nonlinear equation of one unknown 
             #this system can simplified to a nonlinear equation of one unknown
             #println(equations)
             println("eqIndex=",eqIndex)
@@ -230,21 +234,31 @@ module Solver
   end		
   rref(x::Number) = one(x)
   
-  function findsystem(args::Array{Set{String},1})
-    numberOfEquations=length(args)
-    noe=1 #number of equations
+  function findsystem(eqs::Equations,nonliTerms=1)
+    numberOfEquations=length(eqs.exs)
+    noe=nonliTerms #number of equations
     while (noe<=numberOfEquations)
       eqIndexes=getapsoe(1,numberOfEquations,noe)
       for eqIndex in eqIndexes
-        varGroup=getindex(args,eqIndex)
-        allVars=[union(varGroup...)...]
-        if length(allVars) == noe
-          varIndex=map(x->indexin([x...],allVars),varGroup)
-          return varIndex,allVars,eqIndex
+        varGroup=Array(Set{String},0)
+        for ind in eqIndex ; push!(varGroup,eqs.exs[ind].termnonli) ; end
+        allVars=union(varGroup...)
+        if (length(allVars) == nonliTerms)
+          varGroup=Array(Set{String},0)
+          for ind in eqIndex ; push!(varGroup,eqs.exs[ind].termall) ; end
+          allVars=[union(varGroup...)...]
+          if (length(allVars) == noe) 
+            if(noe>nonliTerms)#remove=noe-nonliTerms
+              way=Dict{String,Array{Int,1}}{}
+            end
+            varIndex=map(x->indexin([x...],allVars),varGroup)
+            return varIndex,allVars,eqIndex
+          end
         end
       end
       noe+=1
     end
+    return false,false,false
   end
   
   #generate indexes for all possible system of _noe equations[APSOE]. 
@@ -269,5 +283,25 @@ module Solver
     replace!(expr,var,0.0)
     expr=simplify(expr)
     expr=Expr(:call,:/,:(-1*$expr),fac)
+  end
+
+  function whatifcombineeqs(lia::Set{String},nlia::Set{String},lib::Set{String},nlib::Set{String})
+    nli_re=union(nlia,nlib)
+    com=[intersect(lia,lib),intersect(lia,nlib),intersect(nlia,lib)]
+    un=[[union(lia,lib) union(nlia,nlib)];[lib union(lia,nlib,nlia)];[lia union(nlia,lib,nlib)]]
+    #number of possible scenarions=length(common(lia,lib))
+    re::Array{Set{String},1}=Array(Set{String},0)
+    j=1
+    for i in [1:3]
+      for c in (com[i])
+        lic=copy(un[i,1])
+        nlic=copy(un[i,2])
+        delete!(lic,c)
+        delete!(nlic,c)
+        setdiff!(lic,nlic)
+        push!(re,lic,nlic)
+      end
+    end
+    return re
   end
 end

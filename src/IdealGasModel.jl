@@ -7,7 +7,7 @@ module IdealGasModel
   export DANAIdealGasEos,setEquationFlow
   type  DANAIdealGasEos <: DanaModel
       DANAIdealGasEos()=begin
-        new(8314.4621,"",true,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,
+        new(8314.4621,"",true,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,
           [
             :(P*v=R*T),#pascal
             :(Cp=C1+C2*T+C3*T^2+C4*T^3+C5*T^4),#Poly Cp in J/[Kmol*K] REF[2] TABLE 2-155
@@ -19,7 +19,9 @@ module IdealGasModel
             :(ICpDT=C1*T+C2*C3*coth(C3/T)-C4*C5*tanh(C5/T)),#Integ of Cp Hyper
             :(u=ICpDT-R*T), #Internal energy in J/Kmol
             :(h=ICpDT), #Enthalpy in J/kmol
-            :(s=ICpOnTDT-R*log(P)) #Entropy in J/[Kmol*K] ,REF[1] eq(3.22)
+            :(s=ICpOnTDT-R*log(P)), #Entropy in J/[Kmol*K] ,REF[1] eq(3.22)
+            :(f=u-T*s), #Helmholtz free energy
+            :(g=h-T*s) #Gibbs free energy
           ],Array(Expr,0)
         )
       end
@@ -41,6 +43,8 @@ module IdealGasModel
       u::Float64
       h::Float64
       s::Float64
+      g::Float64
+      f::Float64
       ICpOnTDT::Float64
       ICpDT::Float64
       #equations
@@ -49,9 +53,9 @@ module IdealGasModel
   end
   function setEquationFlow(this::DANAIdealGasEos)
     if this.usePolynomialEstimationOfCp
-      this.equationsFlow=[this.equations[1],this.equations[2],this.equations[4],this.equations[6],this.equations[7],this.equations[9],this.equations[10],this.equations[11]]
+      this.equationsFlow=[this.equations[1],this.equations[2],this.equations[4],this.equations[6],this.equations[7],this.equations[9],this.equations[10],this.equations[11],this.equations[12],this.equations[13]]
     else
-      this.equationsFlow=[this.equations[1],this.equations[3],this.equations[5],this.equations[6],this.equations[8],this.equations[9],this.equations[10],this.equations[11]]
+      this.equationsFlow=[this.equations[1],this.equations[3],this.equations[5],this.equations[6],this.equations[8],this.equations[9],this.equations[10],this.equations[11],this.equations[12],this.equations[13]]
     end
   end
 end

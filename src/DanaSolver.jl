@@ -1,13 +1,13 @@
-include ("IdealGasModel.jl")
-include ("PengRobinsonModel.jl")
-include ("PengRobinsonDLModel.jl")
-include ("Solver.jl")
+include("IdealGasModel.jl")
+include("PengRobinsonModel.jl")
+include("PengRobinsonDLModel.jl")
+include("Solver.jl")
 using IdealGasModel
 using ThermodynamicsTable
 using PengRobinsonModel
 using PengRobinsonDLModel
 using Solver
-module ThermophysicalCalculation
+module DanaSolver
 #  using Solver
 #  using IdealGasModel
 #  using PengRobinsonModel

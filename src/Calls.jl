@@ -26,7 +26,7 @@ function getfxy0whengzeroatx(f::Function,g::Function,x::Float64,ginitial,gbracke
       end
     end
   end
-  #println ("in callffzero no answer after $attempt attempts")
+  #println("in callffzero no answer after $attempt attempts")
   throw(DomainError)
 end
 function callfzero(fun::Function,gus::Float64,br::Vector{Float64},maxattempts=MaxAttempt,ord=0)

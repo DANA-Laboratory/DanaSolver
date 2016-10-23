@@ -1,18 +1,18 @@
-module Solver 
+module Solver
   using DanaTypes
   using Calculus
   using Roots
   using NLopt
   export solve!
   import DanaTypes.setfield!
-  include ("Replace.jl")
-  include ("Equations.jl")
-  include ("Analysis.jl")
-  include ("Update.jl")
-  include ("Calls.jl")  
-  
+  include("Replace.jl")
+  include("Equations.jl")
+  include("Analysis.jl")
+  include("Update.jl")
+  include("Calls.jl")
+
   #convert expr to function of symsLoc --moves from analysis
-  function exprTofunction(ex::Expr,symsLoc::Vector{ASCIIString})
+  function exprTofunction(ex::Expr,symsLoc::Vector{String})
     ret::Expr=:(()->())
     ret.args[2].args[2]=ex
     for s in symsLoc
@@ -21,7 +21,7 @@ module Solver
     return eval(ret)
   end
 
-  #replace known arguments in _eq::Function argument list and returns another function with only unknowns 
+  #replace known arguments in _eq::Function argument list and returns another function with only unknowns
   #for unknown arguments pass NaN in _argsArray
   #getEq([1.1,2.3,NaN,-3.1,NaN],fun) -> _fun(arg1,arg2)=fun(1.1,2.3,arg1,-3.1,arg2)
 
@@ -41,9 +41,6 @@ module Solver
     ex.args[2].args[2].args=exx
     return eval(ex)
   end =#
-
-  getfield(danamodel::DanaModel,sy::Symbol)=get(Base.getfield(danamodel,sy))
-  getfield(danamodel::DanaModel,ex::Expr)=getfield(getfield(danamodel,ex.args[1]),ex.args[2].value)
 
   #solve li plus one nonlinear
   function sliponl!(danamodel::DanaModel)
@@ -76,7 +73,7 @@ module Solver
         else
           varIndex,allVars,eqIndex=findsystem(eqs,2)
           if (varIndex!=false)
-            #fails to find a nonlinear equation of one unknown 
+            #fails to find a nonlinear equation of one unknown
             #this system can simplified to a nonlinear equation of one unknown
             #println(equations)
             println("eqIndex=",eqIndex)
@@ -94,7 +91,7 @@ module Solver
       end
     end
   end
-  
+
   #main loop
   function solve!(danamodel::DanaModel)
     somethingUpdated=true
@@ -109,7 +106,7 @@ module Solver
     end
     return somethingUpdated,fullDetermined,noliTrys,nonlTrys
   end
-  
+
   # solve system of nonlinear equations
   function ssonle!(danamodel::DanaModel,nonliFuns::Array{Function,1},nonliArgs::Array{Set{String},1})
     somthingUpdated=false
@@ -150,14 +147,14 @@ module Solver
     end
     return somthingUpdated,fullDetermined
   end
-  
+
   # Solve Linear System Til Something Updated But Not Full Determined
   # setEquationFlow -> loop(replace->symplify->analysis->update)
   function slstsubnfd!(danamodel::DanaModel)
     noTrys=0
     somethingUpdated=true
     fullDetermined=false
-    setEquationFlow(danamodel)   
+    setEquationFlow(danamodel)
     while (true)
       noTrys+=1
       rVls,eqs=solvelinear(danamodel)
@@ -180,16 +177,16 @@ module Solver
     for eq in equations
       try
         seq=simplify(eq)
-        if isa(seq,Expr) 
+        if isa(seq,Expr)
           push!(sequations,seq)
         else
           # nothing to do!
         end
       catch y
         if isa(y,DomainError)
-          println ("can't simplify following equation:\n",eq);
+          println("can't simplify following equation:\n",eq);
         end
-        println ("can't simplify following equation:\n",eq);
+        println("can't simplify following equation:\n",eq);
         throw(y)
       end
     end
@@ -200,40 +197,40 @@ module Solver
     rreModel=rref(eqs.facts)
     return rreModel,eqs
   end
-  function rref(U::Array{Float64,2})		
-    nr, nc = size(U)		
-    e = eps(norm(U,Inf))		
-    i = j = 1		
-    while i <= nr && j <= nc		
-      (m, mi) = findmax(abs(U[i:nr,j]))		
-      mi = mi+i - 1		
-      if m <= e		
-        U[i:nr,j] = 0		
-        j += 1		
-      else		
-        for k=j:nc		
-          U[i, k], U[mi, k] = U[mi, k], U[i, k]		
-        end		
-        d = U[i,j]		
-        for k = j:nc		
-          U[i,k] /= d		
-        end		
-        for k = 1:nr		
-          if k != i		
-            d = U[k,j]		
-            for l = j:nc		
-              U[k,l] -= d*U[i,l]		
-            end		
-          end		
-        end		
-        i += 1		
-        j += 1		
-      end		
-    end		
-    U		
-  end		
+  function rref(U::Array{Float64,2})
+    nr, nc = size(U)
+    e = eps(norm(U,Inf))
+    i = j = 1
+    while i <= nr && j <= nc
+      (m, mi) = findmax(abs(U[i:nr,j]))
+      mi = mi+i - 1
+      if m <= e
+        U[i:nr,j] = 0
+        j += 1
+      else
+        for k=j:nc
+          U[i, k], U[mi, k] = U[mi, k], U[i, k]
+        end
+        d = U[i,j]
+        for k = j:nc
+          U[i,k] /= d
+        end
+        for k = 1:nr
+          if k != i
+            d = U[k,j]
+            for l = j:nc
+              U[k,l] -= d*U[i,l]
+            end
+          end
+        end
+        i += 1
+        j += 1
+      end
+    end
+    U
+  end
   rref(x::Number) = one(x)
-  
+
   function findsystem(eqs::Equations,nonliTerms=1)
     numberOfEquations=length(eqs.exs)
     noe=nonliTerms #number of equations
@@ -247,7 +244,7 @@ module Solver
           varGroup=Array(Set{String},0)
           for ind in eqIndex ; push!(varGroup,eqs.exs[ind].termall) ; end
           allVars=[union(varGroup...)...]
-          if (length(allVars) == noe) 
+          if (length(allVars) == noe)
             if(noe>nonliTerms)#remove=noe-nonliTerms
               way=Dict{String,Array{Int,1}}{}
             end
@@ -260,14 +257,14 @@ module Solver
     end
     return false,false,false
   end
-  
-  #generate indexes for all possible system of _noe equations[APSOE]. 
+
+  #generate indexes for all possible system of _noe equations[APSOE].
   #where equations are selected from _minIndex to _maxIndex of a list of equations
   #TODO use combinators
   function getapsoe(minIndex::Int,maxIndex::Int,noe::Int)
     if 1<noe
       jj::Vector=Vector[]
-      for k in [minIndex+1:maxIndex] 
+      for k in [minIndex+1:maxIndex]
         j=getapsoe(k,maxIndex,noe-1)
         jj=append!(jj,[push!(e,k-1) for e in j])
       end

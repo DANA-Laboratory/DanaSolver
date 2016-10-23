@@ -2,18 +2,18 @@
 # REF[2] Engineering and Chemical Thermodynamics By Milo D. Koretsky
 # REF[3] Perry HandBook
 
-#generate indexes for all possible system of _noe equations[APSOE]. 
+#generate indexes for all possible system of _noe equations[APSOE].
 #where equations is a selection from _minIndex to _maxIndex of a list of equations
 using NLopt
 function getAPSOE(_minIndex::Int,_maxIndex::Int,_noe::Int)
   if 1<_noe
     jj::Vector=Vector[]
-    for k in [_minIndex+1:_maxIndex] 
+    for k in [_minIndex+1:_maxIndex]
       j=getAPSOE(k,_maxIndex,_noe-1)
       jj=append!(jj,[push!(e,k-1) for e in j])
     end
     return jj
-  else 
+  else
     return [[i] for i in _minIndex:_maxIndex]
   end
 end
@@ -30,7 +30,7 @@ function testMoreThanOneNonLinear()
   for k in [1:1]
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinson()
-    Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
+    Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde")
     setfield!(PR,:Tc,Tc)
     setfield!(PR,:Pc,Pc)
     setfield!(PR,:af,af)
@@ -89,7 +89,7 @@ function testMoreThanOneNonLinear()
               end
             else
               fullDetermined=false
-            end 
+            end
             i=i+1
           end
         end
@@ -97,11 +97,11 @@ function testMoreThanOneNonLinear()
       if !fullDetermined
         numberOfEquations=length(nonliFuns)
         println("non-Linear multi-Equation Solver.")
-        #fail to fined non-linear equations with only one unknown 
+        #fail to fined non-linear equations with only one unknown
         somethingUpdated=false
         i=2
         while (i<=numberOfEquations && !somethingUpdated)
-          println ("try system of ",i," equations")
+          println("try system of ",i," equations")
           eqIndexes=getAPSOE(1,numberOfEquations,i)
           for eqIndex in eqIndexes
             varGroup=getindex(nonliVars,eqIndex)
@@ -127,7 +127,7 @@ function testMoreThanOneNonLinear()
                 funcs=[y->eqGroup[1](getindex(y,indxGroup[1])...),y->eqGroup[2](getindex(y,indxGroup[2])...)]
                 println("using multiple fzeroz")
                 @time r=Solver.callfzero(x->Solver.callffzero(x,funcs[1],de[2],[lo[2],up[2]],funcs[2]),de[1],[lo[1],up[1]],1000)
-                println ("result=",r[1],' ',Solver.initial)
+                println("result=",r[1],' ',Solver.initial)
                 Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][1],r[1])
                 Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][2],Solver.initial)
                 somethingUpdated=true
@@ -188,7 +188,7 @@ function testVariousKnowns()
   cNo="75-07-0"
   v=0.0;
   PR=DANAPengRobinson()
-  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo) 
+  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo)
   PR.P=PR.Pc
   PR.T=PR.Tc
   somethingUpdated=true
@@ -238,7 +238,7 @@ function testVariousKnowns()
           somethingUpdated=true
         else
           fullDetermined=false
-        end 
+        end
         i=i+1
       end
     end
@@ -250,7 +250,7 @@ function testVariousKnowns()
   global y=PR
   res=optimize(optFunctionHP, [PR.T/20,PR.h_Dep/20]);
   return res;
-end 
+end
 function optFunctionHP(x::Vector)
   b=y.b
   R=y.R
@@ -327,7 +327,7 @@ function testPR()
         setEquationFlow(DNpr);
         rVls,vars,nonliFuns,nonliVars=solve(DNpr)
         println(DNpr.equationsFlow)
-        somethingUpdated,fullDetermined=update!(DNpr,rVls,vars)					
+        somethingUpdated,fullDetermined=update!(DNpr,rVls,vars)
         return DNpr
       end
       if !fullDetermined
@@ -340,7 +340,7 @@ function testPR()
             somethingUpdated=true
           else
             fullDetermined=false
-          end 
+          end
           i=i+1
         end
       end

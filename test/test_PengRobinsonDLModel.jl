@@ -2,7 +2,7 @@
 # REF[2] Engineering and Chemical Thermodynamics By Milo D. Koretsky
 # REF[3] Perry HandBook
 
-#generate indexes for all possible system of _noe equations[APSOE]. 
+#generate indexes for all possible system of _noe equations[APSOE].
 #where equations is a selection from _minIndex to _maxIndex of a list of equations
 using NLopt
 function dumpme(var)
@@ -17,7 +17,7 @@ function testPRDLvriousunknowns()
   for k in [1:3]
     cNo="75-07-0" #Acetaldehyde
     PR=DANAPengRobinsonDL()
-    Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde") 
+    Tc,Pc,af=getvalueforname("Criticals","Acetaldehyde")
     setfield!(PR,:Tc,Tc)
     setfield!(PR,:Pc,Pc)
     setfield!(PR,:af,af)
@@ -82,7 +82,7 @@ end
               end
             else
               fullDetermined=false
-            end 
+            end
             i=i+1
           end
         end
@@ -90,17 +90,17 @@ end
       if !fullDetermined
         numberOfEquations=length(nonliFuns)
         println("non-Linear multi-Equation Solver.")
-        #fail to fined non-linear equations with only one unknown 
+        #fail to fined non-linear equations with only one unknown
         somethingUpdated=false
         i=2
         println(nonliVars)
         while (i<=numberOfEquations && !somethingUpdated)
-          println ("try system of ",i," equations")
+          println("try system of ",i," equations")
           eqIndexes=getAPSOE(1,numberOfEquations,i)
           for eqIndex in eqIndexes
             varGroup=getindex(nonliVars,eqIndex)
             allVars=union(varGroup...)
-            i==2 && (println (varGroup,' ',length(allVars),' ',eqIndex))
+            i==2 && (println(varGroup,' ',length(allVars),' ',eqIndex))
             if length(allVars) == i
               eqGroup=getindex(nonliFuns,eqIndex)
               println("eqGroup=",eqIndex," for vars:",allVars)
@@ -122,7 +122,7 @@ end
                 funcs=[y->eqGroup[1](getindex(y,indxGroup[1])...),y->eqGroup[2](getindex(y,indxGroup[2])...)]
                 println("using multiple fzeroz")
                 @time r=Solver.callfzero(x->Solver.callffzero(x,funcs[1],de[2],[lo[2],up[2]],funcs[2]),de[1],[lo[1],up[1]],1000)
-                println ("result=",r[1])
+                println("result=",r[1])
                 println("using opt")
                 opt = Opt(:GN_DIRECT_L, i)
                 lower_bounds!(opt, lo)
@@ -140,8 +140,8 @@ end
                   end
                 end
                 min_objective!(opt,optfun)
-                @time (minf,minx,ret)=optimize(opt,de)
-                println("got $minf at $minx (returned $ret)")
+                @time(minf,minx,ret)=optimize(opt,de)
+                println("got $minf at $minx(returned $ret)")
                 if "$ret"=="STOPVAL_REACHED"
                   for j in [1:i]
                     Solver.setfield!(PR,[nonliVars[eqIndex[1]]...][j],minx[j])
@@ -175,7 +175,7 @@ function testVariousKnowns()
   cNo="75-07-0"
   v=0.0;
   PR=DANAPengRobinson()
-  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo) 
+  PR.Tc,PR.Pc,PR.af=getValueForCasNo("Criticals",cNo)
   PR.P=PR.Pc
   PR.T=PR.Tc
   somethingUpdated=true
@@ -225,7 +225,7 @@ function testVariousKnowns()
           somethingUpdated=true
         else
           fullDetermined=false
-        end 
+        end
         i=i+1
       end
     end
@@ -237,7 +237,7 @@ function testVariousKnowns()
   global y=PR
   res=optimize(optFunctionHP, [PR.T/20,PR.h_Dep/20]);
   return res;
-end 
+end
 function optFunctionHP(x::Vector)
   b=y.b
   R=y.R
@@ -314,7 +314,7 @@ function testPR()
         setEquationFlow(DNpr);
         rVls,vars,nonliFuns,nonliVars=solve(DNpr)
         println(DNpr.equationsFlow)
-        somethingUpdated,fullDetermined=update!(DNpr,rVls,vars)					
+        somethingUpdated,fullDetermined=update!(DNpr,rVls,vars)
         return DNpr
       end
       if !fullDetermined
@@ -327,7 +327,7 @@ function testPR()
             somethingUpdated=true
           else
             fullDetermined=false
-          end 
+          end
           i=i+1
         end
       end

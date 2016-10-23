@@ -21,7 +21,7 @@ function analysissystemofequations()
   #nonlinear terms of each nonlinear expr
     @test exprs.exs[i].termnonli == [Set(["z"]),Set(["z","y"]),Set(["y"]),Set(["x","z","y"]),Set(["x","z","y"]),Set{}(),Set{}(),Set{}()][i]
   end
-  println ("linear factors of nonlinear exprs:")
+  println("linear factors of nonlinear exprs:")
   for i in exprs.indexnonliexs
     ex=exprs.exs[i].ex
     facs=exprs.exs[i].factliinnonli

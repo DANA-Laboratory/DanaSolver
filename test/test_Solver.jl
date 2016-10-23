@@ -15,7 +15,7 @@ function solvelinearidealgas()
   DNIdel=DANAIdealGasEos()
   DNIdel.P=12.0
   DNIdel.T=120.0
-  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   setEquationFlow(DNIdel)
@@ -31,7 +31,7 @@ function solvelinearidealgas()
   DNIdel=DANAIdealGasEos()
   DNIdel.P=12.0
   DNIdel.T=120.0
-  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   setEquationFlow(DNIdel)
@@ -43,15 +43,15 @@ function solvelinearidealgas()
   DNIdel=DANAIdealGasEos()
   DNIdel.P=12.0
   DNIdel.T=120.0
-  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   somethingUpdated,fullDetermined,eqs,noTrys=Solver.slstsubnfd!(DNIdel)
   @test somethingUpdated == true
   @test fullDetermined == true
   @test eqs.indexnonliexs == []
-  @test length(eqs.terms) == 9 
-  @test length(eqs.exs) == 8 
+  @test length(eqs.terms) == 9
+  @test length(eqs.exs) == 8
   println("solution done by $noTrys trys")
   @test_approx_eq 83144.621 DNIdel.v
   @test_approx_eq 78910.7999999 DNIdel.Cp
@@ -59,7 +59,7 @@ function solvelinearidealgas()
   DNIdel=DANAIdealGasEos()
   DNIdel.P=12.0
   DNIdel.T=120.0
-  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6 
+  DNIdel.name="1,2,4-Trimethylbenzene" #95-63-6
   DNIdel.usePolynomialEstimationOfCp=true
   DNIdel.C1,DNIdel.C2,DNIdel.C3,DNIdel.C4,DNIdel.C5 = getvalueforname("CpPoly",DNIdel.name)
   somethingUpdated,fullDetermined,noliTrys,nonlTrys=solve!(DNIdel)
@@ -91,7 +91,7 @@ function solvenonlinearidealgas()
   if length(eqIndex)==1
     fun=Solver.exprTofunction(eqs.exs[eqIndex[1]].ex,allVars[varIndex[1]])
     result=Roots.fzero(fun,[0,typemax(Int64)])
-    @test_approx_eq result 962.1783117595058 
+    @test_approx_eq result 962.1783117595058
     Solver.setfield!(DNIdel,allVars[varIndex[1]][1],result)
   end
   @test_approx_eq DNIdel.T 962.1783117595058
@@ -106,9 +106,9 @@ function solvenonlinearidealgas()
   @test somethingUpdated == true
   @test fullDetermined == true
   @test_approx_eq DNIdel.T 962.1783117595058
-  @test_approx_eq DNIdel.ICpDT 2.7479202136168545e8 
-  @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692 
-  println ("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
+  @test_approx_eq DNIdel.ICpDT 2.7479202136168545e8
+  @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692
+  println("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
   println("****** 3-using solve! ******")
   DNIdel=DANAIdealGasEos()
   DNIdel.P=2000.0
@@ -120,9 +120,9 @@ function solvenonlinearidealgas()
   @test somethingUpdated == true
   @test fullDetermined == true
   @test_approx_eq DNIdel.T 962.1783117595058
-  @test_approx_eq DNIdel.ICpDT 2.7479202136168545e8 
-  @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692 
-  println ("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
+  @test_approx_eq DNIdel.ICpDT 2.7479202136168545e8
+  @test_approx_eq DNIdel.ICpOnTDT 697723.1775663692
+  println("solution done using $noliTrys linear plus $nonlTrys nonlinear trys")
 end
 function testfindsystem()
   println("**** find system to solve ****")

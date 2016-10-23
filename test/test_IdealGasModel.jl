@@ -64,12 +64,12 @@ function forwater()
   DhDep=(h_Dep-h_Dep[1])/1000
   i=1
   for t in tem
-    println ("at $t -> calculated enthalpy=",DhDep[i]," Ref[1] Table2-180=",ref_h[i]," %diff=",(DhDep[i]-ref_h[i])/ref_h[i]*100)
+    println("at $t -> calculated enthalpy=",DhDep[i]," Ref[1] Table2-180=",ref_h[i]," %diff=",(DhDep[i]-ref_h[i])/ref_h[i]*100)
     i+=1
   end
 end
 function forCarbonmonoxide()
-  println ("****  for Carbonmonoxide ****")
+  println("****  for Carbonmonoxide ****")
   ###### verification: check monoxide Enthalpies with Ref[1]:Table(2-180) #######
   DNIdel=DANAIdealGasEos()
   DNIdel.T=298.15
